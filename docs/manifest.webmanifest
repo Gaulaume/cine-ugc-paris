@@ -1,6 +1,6 @@
 {
-  "name": "Séances Illimité — Paris",
-  "short_name": "Séances",
+  "name": "Ciné — Paris (carte UGC Illimité)",
+  "short_name": "Ciné",
   "description": "Toutes les séances des cinémas parisiens qui acceptent la carte UGC Illimité.",
   "start_url": "./",
   "scope": "./",

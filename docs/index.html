@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Séances Illimité</title>
+<title>Ciné</title>
 <meta name="description" content="Toutes les séances des cinémas parisiens qui acceptent la carte UGC Illimité.">
 <meta name="theme-color" content="#1B2A4E">
 <link rel="manifest" href="manifest.webmanifest">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Séances">
+<meta name="apple-mobile-web-app-title" content="Ciné">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -244,7 +244,7 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
 <body>
 <div class="app" id="app">
   <header class="plate">
-    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Séances Illimité</span><button class="cardbtn" id="cardBtn" aria-haspopup="dialog">🎟 Ma carte</button></h1>
+    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Ciné</span><button class="cardbtn" id="cardBtn" aria-haspopup="dialog">🎟 Ma carte</button></h1>
     <label class="search" id="searchBox">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Chercher un film" autocomplete="off" enterkeyhint="search" aria-label="Chercher un film">
@@ -395,7 +395,7 @@ const posterHTML = (m, cls = "poster") => m.poster
 
 function renderList() {
   $("#app").classList.remove("film-mode");
-  $("#title").textContent = "Séances Illimité";
+  $("#title").textContent = "Ciné";
   const q = norm(state.q).trim();
   const now = parisNow();
   const rows = [];
@@ -451,7 +451,7 @@ function renderFilm(id) {
   const m = state.data.movies[id];
   if (!m) { location.hash = ""; return; }
   $("#app").classList.add("film-mode");
-  $("#title").textContent = "Séances Illimité";
+  $("#title").textContent = "Ciné";
   const now = parisNow();
   const shows = filtered(state.byMovie.get(id) || []);
   // Lien pour réafficher les séances passées (aujourd'hui seulement).

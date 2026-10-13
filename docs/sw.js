@@ -1,5 +1,5 @@
 // Appli disponible hors ligne : coquille en cache, séances en « réseau d'abord ».
-const CACHE = "seances-v3";
+const CACHE = "seances-v4";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => {

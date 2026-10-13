@@ -1,4 +1,4 @@
-# Séances Illimité — Paris
+# Ciné — Paris
 
 Appli mobile (PWA) pour trouver **toutes les séances d'un film** dans les 59 cinémas
 de Paris qui acceptent la carte **UGC Illimité** (UGC, MK2 et indépendants).
