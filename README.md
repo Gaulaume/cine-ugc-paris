@@ -45,6 +45,11 @@ dans la liste ; les séances en avant-première portent la mention « Avant-prem
 - VO par défaut (cache seulement les films doublés), choix mémorisé ; séances passées masquées
   (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs).
 - Lien « Itinéraire » Google Maps sur chaque salle.
+- « Marquer déjà vu » sur la fiche d'un film : il disparaît de la liste (lien pour les réafficher),
+  choix gardé sur le téléphone.
+- Recherche : un film qui ne passe pas le jour choisi apparaît quand même, avec sa prochaine
+  séance ; le toucher ouvre ce jour-là.
+- Filtre « Fin avant 22 h / 23 h / minuit » (fin estimée, pubs comprises).
 
 ## Ma carte
 Bouton « 🎟 Ma carte » : on choisit une capture de sa carte UGC Illimité (et, si on veut, son

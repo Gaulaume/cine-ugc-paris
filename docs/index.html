@@ -83,6 +83,7 @@ button { cursor: pointer; }
 }
 .search input { flex: 1; border: 0; outline: 0; background: none; font-size: 17px; min-width: 0; }
 .search svg { flex: none; opacity: .55; }
+.search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }  /* on a déjà notre ✕ */
 .search .clear { border: 0; background: none; padding: 6px; font-size: 18px; opacity: .5; display: none; }
 .search.has-text .clear { display: block; }
 
@@ -143,7 +144,12 @@ button { cursor: pointer; }
 .film-head .poster { width: 96px; border-radius: 6px; font-size: 32px; }
 .film-head h2 { margin: 0; font: 700 30px/1.02 "Barlow Condensed", sans-serif; }
 .film-head p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
-.film-head .ext { display: inline-block; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--focus); text-decoration: none; }
+.film-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; }
+.film-head .ext { font-size: 14px; font-weight: 600; color: var(--focus); text-decoration: none; }
+.seenbtn { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; font-weight: 600; }
+.seenbtn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.badge.seen { background: var(--line); color: var(--ink); margin-right: 4px; }
+.film-row.is-seen { opacity: .6; }
 .view-toggle { display: flex; margin: 0 16px; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
 .view-toggle button { flex: 1; border: 0; background: var(--surface); padding: 8px; font-size: 14px; font-weight: 600; }
 .view-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
@@ -267,6 +273,10 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
     <button class="chip" data-f="vo" aria-pressed="false">VO</button>
     <button class="chip" data-f="vf" aria-pressed="false">VF</button>
     <button class="chip" data-f="fav" aria-pressed="false">★ Mes salles</button>
+    <label class="chip"><select id="endBy" aria-label="Heure de fin de la séance">
+      <option value="">Fin : peu importe</option><option value="1320">Fin avant 22 h</option>
+      <option value="1380">Fin avant 23 h</option><option value="1440">Fin avant minuit</option>
+    </select></label>
     <label class="chip"><select id="group" aria-label="Enseigne">
       <option value="">Toutes enseignes</option><option>UGC</option><option>MK2</option><option value="Indépendant">Indépendants</option>
     </select></label>
@@ -297,7 +307,8 @@ const store = {
 const state = {
   // VO/VF mémorisés ; VO par défaut (cache seulement les films doublés).
   data: null, day: null, q: "", nouv: false, vo: store.get("vo", true), vf: store.get("vf", false), fav: false,
-  sort: store.get("sort", "pop"), showPast: false,
+  sort: store.get("sort", "pop"), showPast: false, endBy: "",
+  seen: new Set(store.get("seen", [])), showSeen: false,
   group: "", arr: "", view: store.get("view", "salle"), favs: new Set(store.get("favs", [])),
 };
 
@@ -344,10 +355,11 @@ function renderDays() {
   }).join("");
 }
 
-function filtered(list) {
+// anyDay : toutes les séances à venir, quel que soit le jour choisi (pour la recherche).
+function filtered(list, anyDay = false) {
   const now = parisNow();
   return list.filter(s => {
-    if (!s[2].startsWith(state.day)) return false;
+    if (anyDay ? s[2] < now : !s[2].startsWith(state.day)) return false;
     // VO = tout sauf les films doublés ; VF = tout ce qui est en français (doublé ou film français).
     if (state.vo && !state.vf && s[3] === "VF") return false;
     if (state.vf && !state.vo && s[3] === "VO") return false;
@@ -357,6 +369,7 @@ function filtered(list) {
     if (state.group && t.group !== state.group) return false;
     if (state.arr && String(t.arr) !== state.arr) return false;
     if (state.fav && !state.favs.has(s[1])) return false;
+    if (state.endBy) { const e = endMin(s); if (e && e > +state.endBy) return false; }  // durée inconnue : on garde
     return true;
   });
 }
@@ -373,9 +386,14 @@ const badge = m => !isNew(m) ? "" : m.release > today()
 // Fin estimée : début + durée du film + ~15 min de pubs et bandes-annonces.
 const ADS_MIN = 15;
 const runtimeMin = m => { const r = /(?:(\d+)h)?\s*(\d+)?\s*min/.exec(m?.runtime || ""); return r ? (+r[1] || 0) * 60 + (+r[2] || 0) : 0; };
+// Fin en minutes depuis minuit le jour de la séance (peut dépasser 1440 après minuit).
+const endMin = s => {
+  const d = runtimeMin(state.data.movies[s[0]]); if (!d) return null;
+  const [h, mi] = s[2].slice(11).split(":").map(Number);
+  return h * 60 + mi + d + ADS_MIN;
+};
 const endTime = s => {
-  const d = runtimeMin(state.data.movies[s[0]]); if (!d) return "";
-  const [h, mi] = s[2].slice(11).split(":").map(Number), t = h * 60 + mi + d + ADS_MIN;
+  const t = endMin(s); if (t == null) return "";
   return `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 
@@ -399,13 +417,21 @@ function renderList() {
   const q = norm(state.q).trim();
   const now = parisNow();
   const rows = [];
+  let hiddenSeen = 0;
   for (const [id, list] of state.byMovie) {
     const m = state.data.movies[id];
     if (!m) continue;
     if (q && !norm(m.title).includes(q) && !norm(m.original).includes(q)) continue;
     if (state.nouv && !isNew(m)) continue;
+    // Films déjà vus masqués (sauf si on les cherche ou qu'on demande à les voir).
+    if (state.seen.has(id) && !q && !state.showSeen) { if (filtered(list).length) hiddenSeen++; continue; }
     const shows = filtered(list);
-    if (!shows.length) continue;
+    if (!shows.length) {
+      // Recherche : le film ne passe pas ce jour-là, on indique sa prochaine séance.
+      const later = q && filtered(list, true)[0];
+      if (later) rows.push({ id, m, n: 0, theaters: 0, later });
+      continue;
+    }
     const upcoming = shows.filter(s => s[2] >= now);
     const theaters = new Set(shows.map(s => s[1]));
     rows.push({ id, m, n: shows.length, theaters: theaters.size, next: upcoming[0]?.[2] });
@@ -423,24 +449,32 @@ function renderList() {
   const recentSince = (() => { const d = new Date(t0 + "T12:00:00"); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10); })();
   const isRecent = m => !!m.release && m.release >= recentSince;
   const byNote = state.sort === "note";
-  rows.sort((a, b) => (byNote && (isRecent(b.m) - isRecent(a.m) || score(b.m) - score(a.m)))
+  rows.sort((a, b) => (!a.n - !b.n) || (byNote && (isRecent(b.m) - isRecent(a.m) || score(b.m) - score(a.m)))
     || (state.nouv && byRelease(a, b)) || b.theaters - a.theaters || b.n - a.n);
   setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : "");
+  const seenLink = hiddenSeen ? `<button class="pastlink" data-seen-list="1">Afficher ${hiddenSeen} film${hiddenSeen > 1 ? "s" : ""} déjà vu${hiddenSeen > 1 ? "s" : ""}</button>`
+    : state.showSeen && state.seen.size ? `<button class="pastlink" data-seen-list="0">Masquer les films déjà vus</button>` : "";
   if (!rows.length) {
-    $("#main").innerHTML = emptyHTML("Aucun film trouvé", q ? "Vérifie l'orthographe ou enlève des filtres." : "Change de jour ou enlève des filtres.");
+    $("#main").innerHTML = emptyHTML("Aucun film trouvé", q ? "Aucune séance à venir avec ces filtres." : "Change de jour ou enlève des filtres.") + seenLink;
     return;
   }
-  const rowHTML = r => `
-    <li><button class="film-row" data-film="${r.id}">
+  const rowHTML = r => {
+    const seen = state.seen.has(r.id) ? `<span class="badge seen">Déjà vu</span>` : "";
+    const info = r.n ? `${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}` : "Pas de séance ce jour-là";
+    const next = r.later ? `<b>${esc(fmtDay(r.later[2].slice(0, 10)))}</b><small>${r.later[2].slice(11)}</small>`
+      : r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`;
+    return `
+    <li><button class="film-row${state.seen.has(r.id) ? " is-seen" : ""}" data-film="${r.id}"${r.later ? ` data-goday="${r.later[2].slice(0, 10)}"` : ""}>
       ${posterHTML(r.m)}
-      <div>${badge(r.m)}<h2>${esc(r.m.title)}</h2><p>${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}${rating(r.m)}</p></div>
-      <div class="next">${r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`}</div>
+      <div>${badge(r.m)}${seen}<h2>${esc(r.m.title)}</h2><p>${info}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}${rating(r.m)}</p></div>
+      <div class="next">${next}</div>
     </button></li>`;
+  };
   const list = rs => `<ul class="films">${rs.map(rowHTML).join("")}</ul>`;
   const recent = rows.filter(r => isRecent(r.m)), older = rows.filter(r => !isRecent(r.m));
   $("#main").innerHTML = byNote && recent.length && older.length
-    ? `<h3 class="list-sep">Sorties récentes</h3>${list(recent)}<h3 class="list-sep">Sortis il y a plus de 3 mois</h3>${list(older)}`
-    : list(rows);
+    ? `<h3 class="list-sep">Sorties récentes</h3>${list(recent)}<h3 class="list-sep">Sortis il y a plus de 3 mois</h3>${list(older)}${seenLink}`
+    : list(rows) + seenLink;
 }
 
 function emptyHTML(title, hint) {
@@ -505,7 +539,8 @@ function renderFilm(id) {
   const nT = new Set(shows.map(s => s[1])).size;
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
   $("#main").innerHTML = `
-    <div class="film-head">${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a></div></div>
+    <div class="film-head">${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a>
+      <button class="seenbtn" data-seen-film="${esc(id)}" aria-pressed="${state.seen.has(id)}">${state.seen.has(id) ? "✓ Déjà vu" : "Marquer déjà vu"}</button></div></div></div>
     <div class="view-toggle" role="group" aria-label="Affichage">
       <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
       <button data-view="heure" aria-pressed="${state.view === "heure"}">Par heure</button>
@@ -549,11 +584,23 @@ document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
   syncChips(); route();
 });
 $("#group").onchange = e => { state.group = e.target.value; route(); };
+$("#endBy").onchange = e => { state.endBy = e.target.value; route(); };
 $("#sort").onchange = e => { state.sort = e.target.value; store.set("sort", state.sort); route(); };
 $("#arr").onchange = e => { state.arr = e.target.value; route(); };
 $("#main").addEventListener("click", e => {
   const film = e.target.closest("[data-film]");
-  if (film) { location.hash = `#/film/${film.dataset.film}`; return; }
+  if (film) {
+    if (film.dataset.goday) { state.day = film.dataset.goday; renderDays(); }  // recherche : jour de la prochaine séance
+    location.hash = `#/film/${film.dataset.film}`; return;
+  }
+  const seenFilm = e.target.closest("[data-seen-film]");
+  if (seenFilm) {
+    const id = seenFilm.dataset.seenFilm;
+    state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id);
+    store.set("seen", [...state.seen]); route(); return;
+  }
+  const seenList = e.target.closest("[data-seen-list]");
+  if (seenList) { state.showSeen = seenList.dataset.seenList === "1"; route(); return; }
   const past = e.target.closest("[data-past]");
   if (past) { state.showPast = past.dataset.past === "1"; route(); return; }
   const v = e.target.closest("[data-view]");
