@@ -347,7 +347,13 @@ function renderList() {
     const theaters = new Set(shows.map(s => s[1]));
     rows.push({ id, m, n: shows.length, theaters: theaters.size, next: upcoming[0]?.[2] });
   }
-  rows.sort((a, b) => (state.nouv && (b.m.release || "").localeCompare(a.m.release || "")) || b.theaters - a.theaters || b.n - a.n);
+  // Nouveautés : films déjà sortis (le plus récent d'abord), puis à venir (le plus proche d'abord).
+  const t0 = today();
+  const byRelease = (a, b) => {
+    const fa = a.m.release > t0, fb = b.m.release > t0;
+    return fa !== fb ? fa - fb : fa ? a.m.release.localeCompare(b.m.release) : b.m.release.localeCompare(a.m.release);
+  };
+  rows.sort((a, b) => (state.nouv && byRelease(a, b)) || b.theaters - a.theaters || b.n - a.n);
   setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : "");
   if (!rows.length) {
     $("#main").innerHTML = `<div class="empty"><h2>Aucun film trouvé</h2><p>${q ? "Vérifie l'orthographe ou enlève des filtres." : "Change de jour ou enlève des filtres."}</p></div>`;

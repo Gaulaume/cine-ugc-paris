@@ -88,7 +88,11 @@ def test_lien_reservation_sans_pistage():
 
 def test_sortie_et_avant_premiere():
     film = {"internalId": 9, "title": "Street Fighter", "languages": ["ENGLISH"],
-            "releases": [{"name": "Released", "releaseDate": {"date": "2026-10-14", "precision": "day"}}]}
+            "releases": [
+                {"name": "Vod", "releaseDate": {"date": "2027-02-04", "precision": "day"},
+                 "releaseTags": {"tagTypes": ["ONLINE", "ONLINE_VOD"]}},
+                {"name": "Released", "releaseDate": {"date": "2026-10-14", "precision": "day"},
+                 "releaseTags": {"tagTypes": ["THEATER"]}}]}
     raw = {"startsAt": "2026-10-13T20:00:00", "diffusionVersion": "ORIGINAL", "isPreview": True,
            "experience": ["PLF"]}
     movies, shows = {}, []

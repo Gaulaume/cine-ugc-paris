@@ -112,12 +112,17 @@ def _formats(raw: dict) -> list[str]:
 
 
 def _release(movie: dict) -> str | None:
-    """Date de sortie en salle en France (AAAA-MM-JJ), si AlloCiné la connaît au jour près."""
+    """Date de sortie en salle en France (AAAA-MM-JJ), si AlloCiné la connaît au jour près.
+
+    AlloCiné liste aussi les sorties VOD, DVD et télé : on ne garde que la sortie « THEATER ».
+    """
+    dates = []
     for r in movie.get("releases") or []:
         d = (r or {}).get("releaseDate") or {}
-        if d.get("precision") == "day" and d.get("date"):
-            return d["date"][:10]
-    return None
+        if "THEATER" in (((r or {}).get("releaseTags") or {}).get("tagTypes") or []) \
+                and d.get("precision") == "day" and d.get("date"):
+            dates.append(d["date"][:10])
+    return min(dates) if dates else None
 
 
 def _booking(raw: dict) -> str | None:
