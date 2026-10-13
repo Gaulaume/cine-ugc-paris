@@ -48,6 +48,7 @@ def test_parse_seances():
     assert movies["1001"]["title"] == "Film Test"
     assert movies["1001"]["directors"] == ["Jane Doe"]
     assert movies["1001"]["rating"] == 4.1
+    assert movies["1001"]["votes"] == 250
     assert shows[0][:4] == ["1001", "C0159", "2026-10-13T14:00", "VO"]
     assert shows[1][3] == "VF"
     assert set(shows[1][4]) == {"IMAX", "3D"}

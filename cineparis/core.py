@@ -153,7 +153,8 @@ def parse_results(results: list[dict], theater_key: str, movies: dict, showtimes
                 for c in movie.get("credits") or []
                 if ((c.get("position") or {}).get("name") == "DIRECTOR")
             ]
-            rating = ((movie.get("stats") or {}).get("userRating") or {}).get("score")
+            user_rating = (movie.get("stats") or {}).get("userRating") or {}
+            rating, votes = user_rating.get("score"), user_rating.get("count")
             movies[mid] = {
                 "title": movie.get("title") or "",
                 "original": movie.get("originalTitle") or "",
@@ -162,6 +163,7 @@ def parse_results(results: list[dict], theater_key: str, movies: dict, showtimes
                 "genres": [g.get("translate") for g in movie.get("genres") or [] if g.get("translate")],
                 "directors": [d for d in directors if d][:2],
                 "rating": round(float(rating), 1) if isinstance(rating, (int, float)) else None,
+                "votes": votes if isinstance(votes, int) else None,
                 "release": _release(movie),
             }
         for group in (item.get("showtimes") or {}).values():

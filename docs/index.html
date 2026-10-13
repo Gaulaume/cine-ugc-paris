@@ -189,12 +189,7 @@ a.time { color: inherit; text-decoration: none; }
 .timeline .when { font: 600 22px/1 "Barlow Condensed"; }
 .timeline .when.past { color: var(--past); }
 .timeline .when small { display: block; font: 500 12px/1.3 "Barlow", sans-serif; color: var(--muted); margin-top: 2px; }
-.soonlist .row { grid-template-columns: 64px 1fr auto; }
-.soonlist .what { min-width: 0; }
-.soonlist .what > b { display: block; font: 600 18px/1.15 "Barlow Condensed", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.soonlist .where { margin-top: 3px; font-size: 14px; }
-.soonlist .where small { color: var(--muted); }
-.timeline .sep { display: block; padding: 14px 0 4px; font: 600 13px "Barlow", sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; border: 0; }
+
 .timeline .where { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .timeline .where span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .timeline .arr { width: 24px; height: 24px; font-size: 13px; }
@@ -263,8 +258,9 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
   </div>
 
   <div class="filters" role="group" aria-label="Filtres">
-    <button class="chip" data-f="soon" aria-pressed="false">⚡ Maintenant</button>
-    <button class="chip" data-f="near" aria-pressed="false">📍 Près de moi</button>
+    <label class="chip"><select id="sort" aria-label="Trier les films">
+      <option value="pop">Trier : les plus diffusés</option><option value="note">Trier : mieux notés</option>
+    </select></label>
     <button class="chip" data-f="nouv" aria-pressed="false">✦ Nouveautés</button>
     <button class="chip" data-f="vo" aria-pressed="false">VO</button>
     <button class="chip" data-f="vf" aria-pressed="false">VF</button>
@@ -299,7 +295,7 @@ const store = {
 const state = {
   // VO/VF mémorisés ; VO par défaut (cache seulement les films doublés).
   data: null, day: null, q: "", nouv: false, vo: store.get("vo", true), vf: store.get("vf", false), fav: false,
-  soon: false, near: false, pos: null, showPast: false,
+  sort: store.get("sort", "pop"), showPast: false,
   group: "", arr: "", view: store.get("view", "salle"), favs: new Set(store.get("favs", [])),
 };
 
@@ -334,6 +330,7 @@ async function load() {
   $("#arr").insertAdjacentHTML("beforeend", arrs.map(a => `<option value="${a}">${a === 1 ? "1er" : a + "e"} arr.</option>`).join(""));
   renderDays();
   syncChips();
+  $("#sort").value = state.sort;
   route();
 }
 
@@ -380,18 +377,6 @@ const endTime = s => {
   return `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 
-// « Près de moi » : distance à vol d'oiseau (km) et temps à pied (~4,5 km/h, détours compris).
-const distKm = t => {
-  if (!state.near || !state.pos || !t?.geo) return Infinity;
-  const r = Math.PI / 180, [la, lo] = t.geo, { lat, lon } = state.pos;
-  const a = Math.sin((la - lat) * r / 2) ** 2 + Math.cos(lat * r) * Math.cos(la * r) * Math.sin((lo - lon) * r / 2) ** 2;
-  return 12742 * Math.asin(Math.sqrt(a));
-};
-const distLabel = t => {
-  const km = distKm(t); if (!isFinite(km)) return "";
-  const walk = Math.round(km * 1.25 / 4.5 * 60);
-  return `${km < 0.1 ? "< 100 m" : km < 1 ? Math.round(km * 10) * 100 + " m" : km.toFixed(1).replace(".", ",") + " km"}${walk <= 30 ? ` · ${Math.max(walk, 1)} min à pied` : ""}`;  // au-delà, on prend le métro
-};
 // Itinéraire Google Maps vers la salle (depuis la position du téléphone).
 // Fiche Letterboxd (recherche par titre original : Letterboxd n'a pas d'API publique pour les notes).
 const letterboxdUrl = m => "https://letterboxd.com/search/films/" + encodeURIComponent(m.original || m.title) + "/";
@@ -407,7 +392,6 @@ const posterHTML = (m, cls = "poster") => m.poster
   : `<div class="${cls}" aria-hidden="true">${esc((m.title || "?")[0])}</div>`;
 
 function renderList() {
-  if (state.soon) return renderSoon();
   $("#app").classList.remove("film-mode");
   $("#title").textContent = "Séances Illimité";
   const q = norm(state.q).trim();
@@ -430,7 +414,10 @@ function renderList() {
     const fa = a.m.release > t0, fb = b.m.release > t0;
     return fa !== fb ? fa - fb : fa ? a.m.release.localeCompare(b.m.release) : b.m.release.localeCompare(a.m.release);
   };
-  rows.sort((a, b) => (state.nouv && byRelease(a, b)) || b.theaters - a.theaters || b.n - a.n);
+  // « Mieux notés » : note des spectateurs AlloCiné ; les films sans note (ou < 20 avis) passent après.
+  const score = m => m.rating && (m.votes == null || m.votes >= 20) ? m.rating : 0;
+  rows.sort((a, b) => (state.sort === "note" && score(b.m) - score(a.m))
+    || (state.nouv && byRelease(a, b)) || b.theaters - a.theaters || b.n - a.n);
   setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : "");
   if (!rows.length) {
     $("#main").innerHTML = emptyHTML("Aucun film trouvé", q ? "Vérifie l'orthographe ou enlève des filtres." : "Change de jour ou enlève des filtres.");
@@ -444,36 +431,8 @@ function renderList() {
     </button></li>`).join("")}</ul>`;
 }
 
-// Message vide, avec une explication si « Près de moi » n'a pas encore de distances.
 function emptyHTML(title, hint) {
   return `<div class="empty"><h2>${esc(title)}</h2><p>${esc(hint)}</p></div>`;
-}
-
-// « Maintenant » : toutes les séances qui commencent dans les 90 minutes, tous films confondus.
-const SOON_MIN = 90;
-function renderSoon() {
-  $("#app").classList.remove("film-mode");
-  $("#title").textContent = "Séances Illimité";
-  const now = parisNow(), q = norm(state.q).trim();
-  const until = new Date(Date.now() + SOON_MIN * 60000);
-  const limit = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(until).replace(" ", "T");
-  const shows = filtered(state.data.showtimes).filter(s => s[2] >= now && s[2] <= limit && (!q || norm(state.data.movies[s[0]]?.title).includes(q)));
-  const zone = s => state.near ? Math.min(Math.floor(distKm(state.data.theaters[s[1]]) * 1.25 / 4.5 * 6), 9) : 0;  // tranches de 10 min à pied
-  shows.sort((a, b) => (state.favs.has(b[1]) - state.favs.has(a[1])) || zone(a) - zone(b) || a[2].localeCompare(b[2]));
-  setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans les ${SOON_MIN} min` : "");
-  if (!shows.length) {
-    $("#main").innerHTML = emptyHTML(`Rien dans les ${SOON_MIN} prochaines minutes`, "Enlève des filtres ou regarde la liste des films.");
-    return;
-  }
-  const favCount = shows.filter(s => state.favs.has(s[1])).length;
-  $("#main").innerHTML = `<ul class="timeline soonlist">${shows.map((s, i) => {
-    const t = state.data.theaters[s[1]], m = state.data.movies[s[0]], url = s[5] || t.allocine, end = endTime(s);
-    const head = i === 0 && favCount ? `<li class="sep">★ Dans tes salles</li>` : i === favCount && favCount ? `<li class="sep">Ailleurs</li>` : "";
-    return `${head}<li><a class="row" href="${esc(url)}" target="_blank" rel="noopener">
-      <div class="when">${s[2].slice(11)}${end ? `<small>→ ${end}</small>` : ""}</div>
-      <div class="what"><b>${esc(m.title)}</b><span class="where">${arrBadge(t)}<span>${esc(t.name)}</span><small>${esc([label(s), distLabel(t)].filter(Boolean).join(" · "))}</small></span></div>
-      <b class="go" aria-hidden="true">›</b></a></li>`;
-  }).join("")}</ul>`;
 }
 
 function renderFilm(id) {
@@ -502,15 +461,14 @@ function renderFilm(id) {
       const row = url ? `a class="row" href="${esc(url)}" target="_blank" rel="noopener"` : `div class="row"`;
       const end = endTime(s), fav = state.favs.has(s[1]) ? "★ " : "";
       return `<li><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}${end ? `<small>→ ${end}</small>` : ""}</div>
-        <div class="where">${arrBadge(t)}<span>${fav}${esc(t.name)}</span><small>${esc([label(s), distLabel(t)].filter(Boolean).join(" · "))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}></li>`;
+        <div class="where">${arrBadge(t)}<span>${fav}${esc(t.name)}</span><small>${esc(label(s))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}></li>`;
     }).join("")}</ul>`;
   } else {
     const byT = new Map();
     for (const s of shows) { if (!byT.has(s[1])) byT.set(s[1], []); byT.get(s[1]).push(s); }
     const groups = [...byT.entries()].map(([tid, list]) => ({ tid, t: state.data.theaters[tid], list, next: list.find(s => s[2] >= now)?.[2] || "~" }));
-    // Mes salles d'abord, puis les plus proches (si localisé), puis la prochaine séance.
-    groups.sort((a, b) => (state.favs.has(b.tid) - state.favs.has(a.tid)) || (state.near ? distKm(a.t) - distKm(b.t) || 0 : 0)
-      || a.next.localeCompare(b.next) || a.t.arr - b.t.arr);
+    // Mes salles d'abord, puis la prochaine séance.
+    groups.sort((a, b) => (state.favs.has(b.tid) - state.favs.has(a.tid)) || a.next.localeCompare(b.next) || a.t.arr - b.t.arr);
     body = `<ul class="cinemas">${groups.map(g => {
       let soonDone = false;
       const times = g.list.map(s => {
@@ -527,7 +485,7 @@ function renderFilm(id) {
       const fav = state.favs.has(g.tid);
       return `<li class="cine">
         <div class="cine-top">${arrBadge(g.t)}
-          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · la salle</a>` : `<span>${esc(g.t.address)}</span>`}<small class="dist">${distLabel(g.t) ? esc(distLabel(g.t)) + " · " : ""}<a href="${esc(mapsUrl(g.t))}" target="_blank" rel="noopener">Itinéraire ↗</a></small></div>
+          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · la salle</a>` : `<span>${esc(g.t.address)}</span>`}<small class="dist"><a href="${esc(mapsUrl(g.t))}" target="_blank" rel="noopener">Itinéraire ↗</a></small></div>
           <button class="star" data-star="${esc(g.tid)}" aria-pressed="${fav}" aria-label="${fav ? "Retirer de mes salles" : "Ajouter à mes salles"}">${fav ? "★" : "☆"}</button></div>
         <div class="times">${times}</div></li>`;
     }).join("")}</ul>`;
@@ -569,28 +527,17 @@ $("#q").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(
 $("#clear").onclick = () => { $("#q").value = ""; state.q = ""; $("#searchBox").classList.remove("has-text"); route(); $("#q").focus(); };
 $("#days").onclick = e => {
   const b = e.target.closest("[data-day]"); if (!b) return;
-  state.day = b.dataset.day; state.soon = false; syncChips(); renderDays(); route();
+  state.day = b.dataset.day; renderDays(); route();
 };
 const syncChips = () => document.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", !!state[b.dataset.f]));
 document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
   const f = b.dataset.f;
-  if (f === "near" && !state.near && !state.pos) return locate();
   state[f] = !state[f];
   if (f === "vo" || f === "vf") store.set(f, state[f]);
-  if (f === "soon" && state.soon) {  // « Maintenant » = aujourd'hui, depuis la liste des films
-    state.day = state.data.days[0]; renderDays();
-    if (location.hash) { syncChips(); location.hash = ""; return; }
-  }
   syncChips(); route();
 });
-function locate() {
-  if (!navigator.geolocation) { setStatus("Localisation indisponible sur cet appareil"); return; }
-  setStatus("Localisation en cours…");
-  navigator.geolocation.getCurrentPosition(p => {
-    state.pos = { lat: p.coords.latitude, lon: p.coords.longitude }; state.near = true; syncChips(); route();
-  }, () => setStatus("Localisation refusée : autorise-la dans les réglages du navigateur."), { timeout: 10000, maximumAge: 300000 });
-}
 $("#group").onchange = e => { state.group = e.target.value; route(); };
+$("#sort").onchange = e => { state.sort = e.target.value; store.set("sort", state.sort); route(); };
 $("#arr").onchange = e => { state.arr = e.target.value; route(); };
 $("#main").addEventListener("click", e => {
   const film = e.target.closest("[data-film]");
