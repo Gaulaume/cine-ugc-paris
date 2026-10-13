@@ -1,0 +1,100 @@
+{
+ "error": false,
+ "pagination": {
+  "page": 1,
+  "totalPages": 1
+ },
+ "results": [
+  {
+   "movie": {
+    "internalId": "1001",
+    "title": "Film Test",
+    "originalTitle": "Test Movie",
+    "runtime": "1h 52min",
+    "poster": {
+     "url": "https://example.test/p.jpg"
+    },
+    "genres": [
+     {
+      "translate": "Drame"
+     }
+    ],
+    "stats": {
+     "userRating": {
+      "score": 4.1
+     }
+    },
+    "credits": [
+     {
+      "position": {
+       "name": "DIRECTOR"
+      },
+      "person": {
+       "firstName": "Jane",
+       "lastName": "Doe"
+      }
+     }
+    ]
+   },
+   "showtimes": {
+    "original": [
+     {
+      "internalId": 1,
+      "startsAt": "2026-10-13T14:00:00",
+      "diffusionVersion": "ORIGINAL",
+      "tags": [
+       "Localization.Language.English"
+      ],
+      "projection": [
+       "DIGITAL"
+      ],
+      "experience": null,
+      "sound": null,
+      "picture": null,
+      "data": {
+       "ticketing": [
+        {
+         "urls": [
+          "https://example.test/ticket/1"
+         ]
+        }
+       ]
+      }
+     }
+    ],
+    "local": [
+     {
+      "internalId": 2,
+      "startsAt": "2026-10-13T20:30:00",
+      "diffusionVersion": "LOCAL",
+      "tags": [
+       "Localization.Language.French"
+      ],
+      "projection": [
+       "F_3D"
+      ],
+      "experience": [
+       "IMAX"
+      ],
+      "sound": null,
+      "picture": null,
+      "data": {
+       "ticketing": [
+        {
+         "urls": [
+          "https://example.test/ticket/2"
+         ]
+        }
+       ]
+      }
+     }
+    ],
+    "multiple": []
+   }
+  },
+  {
+   "movie": null,
+   "showtimes": {}
+  }
+ ]
+}

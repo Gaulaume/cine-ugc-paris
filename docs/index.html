@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Séances Illimité</title>
+<meta name="description" content="Toutes les séances des cinémas parisiens qui acceptent la carte UGC Illimité.">
+<meta name="theme-color" content="#1B2A4E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Séances">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --enamel: #1B2A4E;      /* bleu émail des plaques parisiennes */
+  --enamel-ink: #FFFFFF;
+  --page: #E8EDF4;        /* gris-bleu froid */
+  --surface: #FFFFFF;
+  --ink: #16203A;
+  --muted: #5B6680;
+  --line: #CDD5E2;
+  --ticket: #F2C230;      /* jaune « ticket » pour la prochaine séance */
+  --ticket-ink: #1B2A4E;
+  --ugc: #C9283A;
+  --mk2: #222A3A;
+  --indep: #23785A;
+  --past: #A9B2C3;
+  --focus: #2F6BFF;
+  --radius-chip: 6px;
+  --radius-sheet: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --enamel: #0F1A33; --page: #0B1326; --surface: #15203A; --ink: #E9EEF7;
+    --muted: #93A0BA; --line: #26324D; --past: #4A5672; --mk2: #8E9AB3; --ugc: #FF6170; --indep: #4DC596;
+  }
+}
+:root[data-theme="dark"] {
+  --enamel: #0F1A33; --page: #0B1326; --surface: #15203A; --ink: #E9EEF7;
+  --muted: #93A0BA; --line: #26324D; --past: #4A5672; --mk2: #8E9AB3; --ugc: #FF6170; --indep: #4DC596;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 400 16px/1.45 "Barlow", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased; overscroll-behavior-y: contain;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.cond { font-family: "Barlow Condensed", "Barlow", sans-serif; }
+.app { max-width: 640px; margin: 0 auto; min-height: 100dvh; }
+
+/* --- Bandeau émail --- */
+.plate {
+  background: var(--enamel); color: var(--enamel-ink);
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 16px;
+  position: sticky; top: 0; z-index: 5;
+  border-bottom: 3px solid var(--ticket);
+}
+.plate h1 {
+  margin: 0 0 10px; font: 700 26px/1 "Barlow Condensed", sans-serif; letter-spacing: .01em;
+  display: flex; align-items: center; gap: 10px;
+}
+.plate h1 .back {
+  border: 0; background: none; padding: 4px 6px 4px 0; display: none; color: inherit; font-size: 26px; line-height: 1;
+}
+.app.film-mode .plate h1 .back { display: inline-block; }
+.search {
+  display: flex; align-items: center; gap: 8px; background: #fff; color: #16203A;
+  border-radius: 10px; padding: 0 12px; height: 46px;
+}
+.search input { flex: 1; border: 0; outline: 0; background: none; font-size: 17px; min-width: 0; }
+.search svg { flex: none; opacity: .55; }
+.search .clear { border: 0; background: none; padding: 6px; font-size: 18px; opacity: .5; display: none; }
+.search.has-text .clear { display: block; }
+
+.days {
+  display: flex; gap: 6px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px;
+  scrollbar-width: none;
+}
+.days::-webkit-scrollbar { display: none; }
+.day {
+  flex: none; border: 1.5px solid rgba(255,255,255,.35); background: none; color: #fff;
+  border-radius: var(--radius-chip); padding: 5px 10px; text-align: center; min-width: 54px;
+  font-family: "Barlow Condensed", sans-serif;
+}
+.day b { display: block; font-size: 19px; font-weight: 600; line-height: 1.05; }
+.day span { font-size: 13px; opacity: .8; }
+.day[aria-pressed="true"] { background: var(--ticket); color: var(--ticket-ink); border-color: var(--ticket); }
+
+/* --- Filtres --- */
+.filters { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 4px; scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.chip {
+  flex: none; border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 6px 13px; font-size: 14px; font-weight: 500; white-space: nowrap;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.chip select { border: 0; background: none; appearance: none; -webkit-appearance: none; padding-right: 2px; }
+
+.status { padding: 6px 16px 0; font-size: 13px; color: var(--muted); }
+
+/* --- Liste des films --- */
+.films { list-style: none; margin: 0; padding: 8px 16px 32px; display: grid; gap: 2px; }
+.film-row {
+  display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center;
+  width: 100%; border: 0; background: var(--surface); text-align: left; padding: 10px 12px 10px 10px;
+}
+.films li:first-child .film-row { border-radius: 12px 12px 0 0; }
+.films li:last-child .film-row { border-radius: 0 0 12px 12px; }
+.films li:only-child .film-row { border-radius: 12px; }
+.poster {
+  width: 52px; aspect-ratio: 2/3; border-radius: 4px; background: var(--line) center/cover no-repeat;
+  display: grid; place-items: center; color: var(--muted); font: 600 20px "Barlow Condensed";
+}
+.film-row h2 { margin: 0; font: 600 20px/1.1 "Barlow Condensed", sans-serif; }
+.film-row p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+.next { text-align: right; font-family: "Barlow Condensed"; line-height: 1.1; }
+.next b { display: block; font-size: 20px; font-weight: 600; }
+.next small { font-size: 12px; color: var(--muted); }
+
+/* --- Fiche film --- */
+.film-head { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 16px; align-items: end; }
+.film-head .poster { width: 96px; border-radius: 6px; font-size: 32px; }
+.film-head h2 { margin: 0; font: 700 30px/1.02 "Barlow Condensed", sans-serif; }
+.film-head p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.view-toggle { display: flex; margin: 0 16px; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
+.view-toggle button { flex: 1; border: 0; background: var(--surface); padding: 8px; font-size: 14px; font-weight: 600; }
+.view-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
+
+.cinemas { list-style: none; margin: 0; padding: 12px 16px 40px; display: grid; gap: 10px; }
+.cine { background: var(--surface); border-radius: 12px; padding: 12px; }
+.cine-top { display: flex; align-items: center; gap: 10px; }
+.arr {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 15px "Barlow Condensed"; color: #fff; background: var(--indep);
+}
+.arr.UGC { background: var(--ugc); }
+.arr.MK2 { background: var(--mk2); }
+.cine-name { flex: 1; min-width: 0; }
+.cine-name h3 { margin: 0; font: 600 19px/1.1 "Barlow Condensed"; }
+.cine-name a { color: var(--muted); font-size: 13px; text-decoration: none; }
+.cine-name a:hover { text-decoration: underline; }
+.star { border: 0; background: none; padding: 6px; font-size: 20px; color: var(--muted); line-height: 1; }
+.star[aria-pressed="true"] { color: #E0A800; }
+.times { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.time {
+  font-family: "Barlow Condensed"; font-size: 18px; font-weight: 600; line-height: 1;
+  padding: 7px 9px 6px; border-radius: var(--radius-chip); border: 1.5px solid var(--line);
+  display: inline-flex; align-items: baseline; gap: 5px;
+}
+.time small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.time.vf { border-style: dashed; }
+.time.soon { background: var(--ticket); border-color: var(--ticket); color: var(--ticket-ink); }
+.time.soon small { color: var(--ticket-ink); }
+.time.past { color: var(--past); border-color: transparent; text-decoration: line-through; }
+.time.past small { color: var(--past); }
+
+/* Vue chronologique */
+.timeline { list-style: none; margin: 0; padding: 12px 16px 40px; }
+.timeline li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.timeline .when { font: 600 22px/1 "Barlow Condensed"; }
+.timeline .when.past { color: var(--past); }
+.timeline .where { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.timeline .where span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timeline .arr { width: 24px; height: 24px; font-size: 13px; }
+
+.legend { margin: 10px 16px 0; font-size: 13px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+
+.empty { padding: 48px 24px; text-align: center; color: var(--muted); }
+.empty h2 { color: var(--ink); font: 600 22px "Barlow Condensed"; margin: 0 0 6px; }
+
+.install {
+  margin: 12px 16px 0; background: var(--surface); border-radius: 12px; padding: 12px 14px;
+  display: none; gap: 10px; align-items: center; font-size: 14px;
+}
+.install.show { display: flex; }
+.install p { margin: 0; flex: 1; }
+.install button { border: 0; background: var(--enamel); color: #fff; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
+.install .x { background: none; color: var(--muted); padding: 6px; }
+
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .cinemas, .films, .timeline { animation: in .18s ease-out; }
+  @keyframes in { from { opacity: 0; transform: translateY(6px); } }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="plate">
+    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Séances Illimité</span></h1>
+    <label class="search" id="searchBox">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Chercher un film" autocomplete="off" enterkeyhint="search" aria-label="Chercher un film">
+      <button class="clear" id="clear" type="button" aria-label="Effacer">✕</button>
+    </label>
+    <div class="days" id="days" role="group" aria-label="Jour"></div>
+  </header>
+
+  <div class="install" id="install">
+    <p id="installText">Installe l'appli sur ton écran d'accueil.</p>
+    <button id="installBtn">Installer</button>
+    <button class="x" id="installClose" aria-label="Masquer">✕</button>
+  </div>
+
+  <div class="filters" role="group" aria-label="Filtres">
+    <button class="chip" data-f="vo" aria-pressed="false">VO</button>
+    <button class="chip" data-f="vf" aria-pressed="false">VF</button>
+    <button class="chip" data-f="fav" aria-pressed="false">★ Mes salles</button>
+    <button class="chip" data-f="later" aria-pressed="false">À venir</button>
+    <label class="chip"><select id="group" aria-label="Enseigne">
+      <option value="">Toutes enseignes</option><option>UGC</option><option>MK2</option><option value="Indépendant">Indépendants</option>
+    </select></label>
+    <label class="chip"><select id="arr" aria-label="Arrondissement"><option value="">Tous arrondissements</option></select></label>
+  </div>
+  <div class="status" id="status" aria-live="polite"></div>
+
+  <main id="main"></main>
+</div>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+const state = {
+  data: null, day: null, q: "", vo: false, vf: false, fav: false, later: false,
+  group: "", arr: "", view: store.get("view", "salle"), favs: new Set(store.get("favs", [])),
+};
+
+const DOW = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
+const parisNow = () => {
+  // Heure locale de Paris au format "AAAA-MM-JJTHH:MM", quel que soit le fuseau du téléphone.
+  const p = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
+  return p.replace(" ", "T");
+};
+
+async function load() {
+  $("#status").textContent = "Chargement des séances…";
+  try {
+    const res = await fetch("data/showtimes.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error(res.status);
+    state.data = await res.json();
+  } catch {
+    $("#main").innerHTML = `<div class="empty"><h2>Pas encore de séances</h2><p>Les horaires n'ont pas pu être chargés. Vérifie ta connexion, puis rouvre l'appli.</p></div>`;
+    $("#status").textContent = "";
+    return;
+  }
+  const today = parisNow().slice(0, 10);
+  state.data.days = state.data.days.filter(d => d >= today);
+  state.day = state.data.days[0] || today;
+  // Index par film pour aller vite.
+  state.byMovie = new Map();
+  for (const s of state.data.showtimes) {
+    if (!state.byMovie.has(s[0])) state.byMovie.set(s[0], []);
+    state.byMovie.get(s[0]).push(s);
+  }
+  const arrs = [...new Set(Object.values(state.data.theaters).map(t => t.arr))].sort((a, b) => a - b);
+  $("#arr").insertAdjacentHTML("beforeend", arrs.map(a => `<option value="${a}">${a === 1 ? "1er" : a + "e"} arr.</option>`).join(""));
+  renderDays();
+  route();
+}
+
+function renderDays() {
+  $("#days").innerHTML = state.data.days.map((d, i) => {
+    const dt = new Date(d + "T12:00:00");
+    const label = i === 0 ? "auj." : i === 1 ? "dem." : DOW[dt.getDay()];
+    return `<button class="day" data-day="${d}" aria-pressed="${d === state.day}"><b>${dt.getDate()}</b><span>${label}</span></button>`;
+  }).join("");
+}
+
+function filtered(list) {
+  const now = parisNow();
+  return list.filter(s => {
+    if (!s[2].startsWith(state.day)) return false;
+    if (state.vo && !state.vf && s[3] !== "VO") return false;
+    if (state.vf && !state.vo && s[3] !== "VF") return false;
+    if (state.later && s[2] < now) return false;
+    const t = state.data.theaters[s[1]];
+    if (!t) return false;
+    if (state.group && t.group !== state.group) return false;
+    if (state.arr && String(t.arr) !== state.arr) return false;
+    if (state.fav && !state.favs.has(s[1])) return false;
+    return true;
+  });
+}
+
+const posterHTML = (m, cls = "poster") => m.poster
+  ? `<div class="${cls}" style="background-image:url('${esc(m.poster)}')" role="img" aria-label="Affiche"></div>`
+  : `<div class="${cls}" aria-hidden="true">${esc((m.title || "?")[0])}</div>`;
+
+function renderList() {
+  $("#app").classList.remove("film-mode");
+  $("#title").textContent = "Séances Illimité";
+  const q = norm(state.q).trim();
+  const now = parisNow();
+  const rows = [];
+  for (const [id, list] of state.byMovie) {
+    const m = state.data.movies[id];
+    if (!m) continue;
+    if (q && !norm(m.title).includes(q) && !norm(m.original).includes(q)) continue;
+    const shows = filtered(list);
+    if (!shows.length) continue;
+    const upcoming = shows.filter(s => s[2] >= now);
+    const theaters = new Set(shows.map(s => s[1]));
+    rows.push({ id, m, n: shows.length, theaters: theaters.size, next: upcoming[0]?.[2] });
+  }
+  rows.sort((a, b) => b.theaters - a.theaters || b.n - a.n);
+  setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : "");
+  if (!rows.length) {
+    $("#main").innerHTML = `<div class="empty"><h2>Aucun film trouvé</h2><p>${q ? "Vérifie l'orthographe ou enlève des filtres." : "Change de jour ou enlève des filtres."}</p></div>`;
+    return;
+  }
+  $("#main").innerHTML = `<ul class="films">${rows.map(r => `
+    <li><button class="film-row" data-film="${r.id}">
+      ${posterHTML(r.m)}
+      <div><h2>${esc(r.m.title)}</h2><p>${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}</p></div>
+      <div class="next">${r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`}</div>
+    </button></li>`).join("")}</ul>`;
+}
+
+function renderFilm(id) {
+  const m = state.data.movies[id];
+  if (!m) { location.hash = ""; return; }
+  $("#app").classList.add("film-mode");
+  $("#title").textContent = "Séances Illimité";
+  const now = parisNow();
+  const shows = filtered(state.byMovie.get(id) || []);
+  const meta = [m.runtime, m.genres?.slice(0, 2).join(", "), m.directors?.length ? "de " + m.directors.join(", ") : ""].filter(Boolean).join(" · ");
+  const orig = m.original && norm(m.original) !== norm(m.title) ? `<p>${esc(m.original)}</p>` : "";
+  let body;
+  if (!shows.length) {
+    body = `<div class="empty"><h2>Pas de séance ce jour-là</h2><p>Essaie un autre jour ou enlève des filtres.</p></div>`;
+  } else if (state.view === "heure") {
+    body = `<ul class="timeline">${shows.map(s => {
+      const t = state.data.theaters[s[1]];
+      return `<li><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}</div>
+        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${s[3]}${s[4].length ? " · " + esc(s[4].join(" ")) : ""}</small></div></li>`;
+    }).join("")}</ul>`;
+  } else {
+    const byT = new Map();
+    for (const s of shows) { if (!byT.has(s[1])) byT.set(s[1], []); byT.get(s[1]).push(s); }
+    const groups = [...byT.entries()].map(([tid, list]) => ({ tid, t: state.data.theaters[tid], list, next: list.find(s => s[2] >= now)?.[2] || "~" }));
+    groups.sort((a, b) => (state.favs.has(b.tid) - state.favs.has(a.tid)) || a.next.localeCompare(b.next) || a.t.arr - b.t.arr);
+    body = `<ul class="cinemas">${groups.map(g => {
+      let soonDone = false;
+      const times = g.list.map(s => {
+        const past = s[2] < now;
+        let cls = past ? "past" : "";
+        if (!past && !soonDone) { cls = "soon"; soonDone = true; }
+        if (s[3] === "VF") cls += " vf";
+        const extra = [s[3], ...s[4]].join(" ");
+        return `<span class="time ${cls}">${s[2].slice(11)}<small>${esc(extra)}</small></span>`;
+      }).join("");
+      const fav = state.favs.has(g.tid);
+      return `<li class="cine">
+        <div class="cine-top"><span class="arr ${g.t.group === "Indépendant" ? "" : g.t.group}" title="${g.t.arr}e arrondissement">${g.t.arr}</span>
+          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · réserver</a>` : `<span>${esc(g.t.address)}</span>`}</div>
+          <button class="star" data-star="${esc(g.tid)}" aria-pressed="${fav}" aria-label="${fav ? "Retirer de mes salles" : "Ajouter à mes salles"}">${fav ? "★" : "☆"}</button></div>
+        <div class="times">${times}</div></li>`;
+    }).join("")}</ul>`;
+  }
+  const nT = new Set(shows.map(s => s[1])).size;
+  setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
+  $("#main").innerHTML = `
+    <div class="film-head">${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p></div></div>
+    <div class="view-toggle" role="group" aria-label="Affichage">
+      <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
+      <button data-view="heure" aria-pressed="${state.view === "heure"}">Par heure</button>
+    </div>
+    <div class="legend"><span><i style="background:var(--ugc)"></i>UGC</span><span><i style="background:var(--mk2)"></i>MK2</span><span><i style="background:var(--indep)"></i>Indépendant</span><span>Le chiffre = arrondissement</span></div>
+    ${body}`;
+}
+
+function setStatus(extra) {
+  const d = state.data;
+  const upd = d.generatedAt ? new Date(d.generatedAt) : null;
+  const when = upd ? upd.toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }) : "";
+  $("#status").textContent = [extra, when && `mis à jour ${when}`].filter(Boolean).join(" — ");
+}
+
+function route() {
+  if (!state.data) return;
+  const m = location.hash.match(/^#\/film\/(\w+)/);
+  m ? renderFilm(m[1]) : renderList();
+}
+
+// --- Événements ---
+window.addEventListener("hashchange", () => { route(); window.scrollTo(0, 0); });
+$("#back").onclick = () => history.length > 1 ? history.back() : (location.hash = "");
+$("#q").addEventListener("input", e => {
+  state.q = e.target.value;
+  $("#searchBox").classList.toggle("has-text", !!state.q);
+  if (location.hash) location.hash = ""; else renderList();
+});
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+$("#clear").onclick = () => { $("#q").value = ""; state.q = ""; $("#searchBox").classList.remove("has-text"); route(); $("#q").focus(); };
+$("#days").onclick = e => {
+  const b = e.target.closest("[data-day]"); if (!b) return;
+  state.day = b.dataset.day; renderDays(); route();
+};
+document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
+  const f = b.dataset.f; state[f] = !state[f]; b.setAttribute("aria-pressed", state[f]); route();
+});
+$("#group").onchange = e => { state.group = e.target.value; route(); };
+$("#arr").onchange = e => { state.arr = e.target.value; route(); };
+$("#main").addEventListener("click", e => {
+  const film = e.target.closest("[data-film]");
+  if (film) { location.hash = `#/film/${film.dataset.film}`; return; }
+  const v = e.target.closest("[data-view]");
+  if (v) { state.view = v.dataset.view; store.set("view", state.view); route(); return; }
+  const star = e.target.closest("[data-star]");
+  if (star) {
+    const id = star.dataset.star;
+    state.favs.has(id) ? state.favs.delete(id) : state.favs.add(id);
+    store.set("favs", [...state.favs]); route();
+  }
+});
+// Rafraîchit les séances passées toutes les minutes.
+setInterval(() => { if (state.data && document.visibilityState === "visible") route(); }, 60000);
+
+// --- Installation (PWA) ---
+let deferred;
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const dismissed = store.get("installDismissed", false);
+window.addEventListener("beforeinstallprompt", e => {
+  e.preventDefault(); deferred = e;
+  if (!standalone && !dismissed) $("#install").classList.add("show");
+});
+if (!standalone && !dismissed && /iphone|ipad/i.test(navigator.userAgent)) {
+  $("#installText").textContent = "Pour l'installer : bouton Partager, puis « Sur l'écran d'accueil ».";
+  $("#installBtn").hidden = true;
+  $("#install").classList.add("show");
+}
+$("#installBtn").onclick = async () => { if (deferred) { deferred.prompt(); await deferred.userChoice; } $("#install").classList.remove("show"); };
+$("#installClose").onclick = () => { store.set("installDismissed", true); $("#install").classList.remove("show"); };
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+load();
+</script>
+</body>
+</html>
