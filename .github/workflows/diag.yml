@@ -1,0 +1,45 @@
+# TEMPORAIRE : liens de réservation par séance (sera supprimé).
+name: Diagnostic liens
+on:
+  push:
+    branches: [ccr-ebdfd861-fcj7rd]
+    paths: [.github/workflows/diag.yml]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - run: |
+          python - <<'PY'
+          import json, re
+          from datetime import date, timedelta
+          from cineparis.allocine import AllocineClient
+          from cineparis.cinemas import CINEMAS
+          resolved = json.load(open("data/theaters.json"))["matched"]
+          c = AllocineClient(delay=0.2)
+          d = date.today() + timedelta(days=1)
+          tot = 0; lens = []
+          for cin in CINEMAS:
+              tid = cin.allocine or (resolved.get(cin.name) or {}).get("id")
+              if not tid: continue
+              n = without = 0; provs = {}; ex = None
+              for it in c.showtimes(tid, d):
+                  for grp in (it.get("showtimes") or {}).values():
+                      for s in grp or []:
+                          n += 1
+                          tk = ((s.get("data") or {}).get("ticketing")) or []
+                          if not tk: without += 1
+                          for t in tk:
+                              key = f'{t.get("provider")}/{t.get("type")}'
+                              provs[key] = provs.get(key, 0) + 1
+                              for u in t.get("urls") or []:
+                                  if t.get("provider") != "relay": lens.append(len(u))
+                                  if ex is None and t.get("provider") != "relay": ex = u
+              tot += n
+              print(f"{tid:6} {cin.name[:28]:28} séances={n:3} sans_lien={without:3} {provs}")
+              print(f"       ex: {ex}")
+          print("total", tot, "longueur moyenne", sum(lens)/max(1,len(lens)))
+          PY
