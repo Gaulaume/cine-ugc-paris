@@ -51,6 +51,12 @@ dans la liste ; les séances en avant-première portent la mention « Avant-prem
   séance ; le toucher ouvre ce jour-là.
 - Filtre « Fin avant 22 h / 23 h / minuit » (fin estimée, pubs comprises).
 
+## Double séance, partage, calendrier
+Vue « Par heure » d'un film : le bouton ⋯ d'une séance ouvre une feuille avec Réserver,
+Partager, Ajouter au calendrier (fichier .ics avec rappel 45 min avant) et « Enchaîner un
+2e film » : les films qui commencent après la fin estimée (jusqu'à 75 min d'attente), dans la
+même salle puis le même arrondissement, en respectant les filtres et les films déjà vus.
+
 ## Apparence
 Thème sombre « salle de cinéma » par défaut (bouton ◐ pour passer en clair), vue « Affiches »
 (grille de 3 affiches avec note et badges) ou « Liste », fiche film avec l'affiche floutée en
