@@ -19,11 +19,13 @@ from zoneinfo import ZoneInfo
 
 from .cinemas import CINEMAS
 from .core import match_cinemas, parse_results
+from .geo import ensure_geo
 
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 DATA = DOCS / "data"
 THEATERS_FILE = ROOT / "data" / "theaters.json"
+GEO_FILE = ROOT / "data" / "geo.json"
 PARIS = ZoneInfo("Europe/Paris")
 
 
@@ -57,6 +59,12 @@ def cmd_scrape(args) -> int:
     resolved.update({c.name: {"id": c.allocine, "name": c.name, "forced": True}
                      for c in CINEMAS if c.allocine})
 
+    try:
+        geo = ensure_geo(CINEMAS, GEO_FILE)
+    except Exception as exc:  # le mode « Près de moi » est un bonus : il ne bloque pas le scrape
+        print(f"Géocodage impossible : {exc}", file=sys.stderr)
+        geo = {}
+
     today = datetime.now(PARIS).date()
     days = [today + timedelta(days=i) for i in range(args.days)]
     theaters_out, movies, showtimes, errors = {}, {}, [], []
@@ -85,6 +93,7 @@ def cmd_scrape(args) -> int:
                 "name": cinema.name, "address": cinema.address, "zip": cinema.zipcode,
                 "arr": cinema.arrondissement, "group": cinema.group,
                 "allocine": f"https://www.allocine.fr/seance/salle_gen_csalle={info['id']}.html" if info else None,
+                "geo": geo.get(cinema.name),
             }
             for results in per_day:
                 parse_results(results, key, movies, showtimes)
