@@ -11,6 +11,7 @@ import functools
 import http.server
 import json
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -68,7 +69,11 @@ def cmd_scrape(args) -> int:
         per_day = []
         try:
             for d in days:
-                per_day.append(client.showtimes(info["id"], d))
+                results = client.showtimes(info["id"], d)
+                if not results:  # AlloCiné renvoie parfois un vide passager : on réessaie une fois
+                    time.sleep(2)
+                    results = client.showtimes(info["id"], d)
+                per_day.append(results)
         except Exception as exc:  # une salle en erreur ne bloque pas les autres
             return cinema, info, per_day, str(exc)
         return cinema, info, per_day, None

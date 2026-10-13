@@ -161,6 +161,7 @@ button { cursor: pointer; }
   padding: 7px 9px 6px; border-radius: var(--radius-chip); border: 1.5px solid var(--line);
   display: inline-flex; align-items: baseline; gap: 5px;
 }
+a.time { color: inherit; text-decoration: none; }
 .time small { font-size: 12px; font-weight: 500; color: var(--muted); }
 .time.vf { border-style: dashed; }
 .time.soon { background: var(--ticket); border-color: var(--ticket); color: var(--ticket-ink); }
@@ -359,10 +360,11 @@ function renderFilm(id) {
   } else if (state.view === "heure") {
     body = `<ul class="timeline">${shows.map(s => {
       const t = state.data.theaters[s[1]];
-      // Toute la ligne ouvre la page de la salle (horaires + réservation), comme « réserver ».
-      const row = t.allocine ? `a class="row" href="${esc(t.allocine)}" target="_blank" rel="noopener"` : `div class="row"`;
+      // Toute la ligne ouvre la réservation de cette séance sur le site du cinéma.
+      const url = s[2] >= now && (s[5] || t.allocine);
+      const row = url ? `a class="row" href="${esc(url)}" target="_blank" rel="noopener"` : `div class="row"`;
       return `<li><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}</div>
-        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${esc(label(s))}</small>${t.allocine ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}></li>`;
+        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${esc(label(s))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}></li>`;
     }).join("")}</ul>`;
   } else {
     const byT = new Map();
@@ -376,12 +378,15 @@ function renderFilm(id) {
         let cls = past ? "past" : "";
         if (!past && !soonDone) { cls = "soon"; soonDone = true; }
         if (s[3] === "VF") cls += " vf";
-        return `<span class="time ${cls}">${s[2].slice(11)}<small>${esc(label(s))}</small></span>`;
+        const inner = `${s[2].slice(11)}<small>${esc(label(s))}</small>`;
+        const url = !past && (s[5] || g.t.allocine);
+        return url ? `<a class="time ${cls}" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Réserver la séance de ${s[2].slice(11)}">${inner}</a>`
+                   : `<span class="time ${cls}">${inner}</span>`;
       }).join("");
       const fav = state.favs.has(g.tid);
       return `<li class="cine">
         <div class="cine-top"><span class="arr ${g.t.group === "Indépendant" ? "" : g.t.group}" title="${g.t.arr}e arrondissement">${g.t.arr}</span>
-          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · réserver</a>` : `<span>${esc(g.t.address)}</span>`}</div>
+          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · la salle</a>` : `<span>${esc(g.t.address)}</span>`}</div>
           <button class="star" data-star="${esc(g.tid)}" aria-pressed="${fav}" aria-label="${fav ? "Retirer de mes salles" : "Ajouter à mes salles"}">${fav ? "★" : "☆"}</button></div>
         <div class="times">${times}</div></li>`;
     }).join("")}</ul>`;
@@ -394,7 +399,7 @@ function renderFilm(id) {
       <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
       <button data-view="heure" aria-pressed="${state.view === "heure"}">Par heure</button>
     </div>
-    <div class="legend"><span><i style="background:var(--ugc)"></i>UGC</span><span><i style="background:var(--mk2)"></i>MK2</span><span><i style="background:var(--indep)"></i>Indépendant</span><span>Le chiffre = arrondissement</span></div>
+    <div class="legend"><span><i style="background:var(--ugc)"></i>UGC</span><span><i style="background:var(--mk2)"></i>MK2</span><span><i style="background:var(--indep)"></i>Indépendant</span><span>Le chiffre = arrondissement</span><span>Touche un horaire pour réserver</span></div>
     ${body}`;
 }
 

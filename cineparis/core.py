@@ -109,6 +109,16 @@ def _formats(raw: dict) -> list[str]:
     return out
 
 
+def _booking(raw: dict) -> str | None:
+    """Lien de réservation de la séance sur le site du cinéma (ugc.fr, mk2.com…)."""
+    tickets = (raw.get("data") or {}).get("ticketing") or []
+    for t in sorted(tickets, key=lambda t: t.get("provider") != "default"):
+        for url in t.get("urls") or []:
+            if url.startswith("https://") and t.get("provider") != "relay":
+                return re.sub(r"&mtm_[a-z]+=[^&#]*", "", url)  # retire le pistage
+    return None
+
+
 def _poster(movie: dict) -> str | None:
     return (movie.get("poster") or {}).get("url")
 
@@ -142,4 +152,5 @@ def parse_results(results: list[dict], theater_key: str, movies: dict, showtimes
                 starts = raw.get("startsAt")
                 if not starts:
                     continue
-                showtimes.append([mid, theater_key, starts[:16], _version(raw, movie), _formats(raw)])
+                showtimes.append([mid, theater_key, starts[:16], _version(raw, movie), _formats(raw),
+                                  _booking(raw)])
