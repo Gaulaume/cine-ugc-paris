@@ -51,6 +51,11 @@ dans la liste ; les séances en avant-première portent la mention « Avant-prem
   séance ; le toucher ouvre ce jour-là.
 - Filtre « Fin avant 22 h / 23 h / minuit » (fin estimée, pubs comprises).
 
+## Apparence
+Thème sombre « salle de cinéma » par défaut (bouton ◐ pour passer en clair), vue « Affiches »
+(grille de 3 affiches avec note et badges) ou « Liste », fiche film avec l'affiche floutée en
+fond. Choix mémorisés sur le téléphone.
+
 ## Ma carte
 Bouton « 🎟 Ma carte » : on choisit une capture de sa carte UGC Illimité (et, si on veut, son
 numéro). Elle est gardée **uniquement sur le téléphone** (IndexedDB du navigateur) : rien n'est
