@@ -38,14 +38,12 @@ Le filtre « ✦ Nouveautés » garde les films sortis depuis 7 jours et ceux pa
 (avant-premières), du plus récent au plus ancien. Badge « Nouveau » / « Sortie mer. 21 oct. »
 dans la liste ; les séances en avant-première portent la mention « Avant-première ».
 
-## Modes et confort
-- **⚡ Maintenant** : toutes les séances qui commencent dans les 90 min, tous films confondus
-  (mes salles ★ d'abord).
-- **📍 Près de moi** : toutes les salles triées par distance, avec distance et temps à pied ;
-  lien « Itinéraire » Google Maps sur chaque salle. Coordonnées des
-  salles géocodées une fois (service d'adresses de l'IGN) et gardées dans `data/geo.json`.
+## Confort
+- Tri « les plus diffusés » ou « mieux notés » (note des spectateurs AlloCiné ; les films
+  avec moins de 20 avis passent après), choix mémorisé.
 - VO par défaut (cache seulement les films doublés), choix mémorisé ; séances passées masquées
-  (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs) ; note des spectateurs.
+  (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs).
+- Lien « Itinéraire » Google Maps sur chaque salle.
 
 ## Ma carte
 Bouton « 🎟 Ma carte » : on choisit une capture de sa carte UGC Illimité (et, si on veut, son
