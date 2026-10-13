@@ -74,6 +74,9 @@ button { cursor: pointer; }
   border: 0; background: none; padding: 4px 6px 4px 0; display: none; color: inherit; font-size: 26px; line-height: 1;
 }
 .app.film-mode .plate h1 .back { display: inline-block; }
+/* Sur la fiche d'un film, on masque la recherche pour laisser la place aux séances. */
+.app.film-mode .search { display: none; }
+.app.film-mode .days { margin-top: 0; }
 .search {
   display: flex; align-items: center; gap: 8px; background: #fff; color: #16203A;
   border-radius: 10px; padding: 0 12px; height: 46px;
@@ -289,8 +292,9 @@ function filtered(list) {
   const now = parisNow();
   return list.filter(s => {
     if (!s[2].startsWith(state.day)) return false;
-    if (state.vo && !state.vf && s[3] !== "VO") return false;
-    if (state.vf && !state.vo && s[3] !== "VF") return false;
+    // VO = tout sauf les films doublés ; VF = tout ce qui est en français (doublé ou film français).
+    if (state.vo && !state.vf && s[3] === "VF") return false;
+    if (state.vf && !state.vo && s[3] === "VO") return false;
     if (state.later && s[2] < now) return false;
     const t = state.data.theaters[s[1]];
     if (!t) return false;
@@ -300,6 +304,9 @@ function filtered(list) {
     return true;
   });
 }
+
+// « FR » (film français) n'est pas affiché : la version va de soi.
+const label = s => [s[3] === "FR" ? "" : s[3], ...s[4]].filter(Boolean).join(" ");
 
 const posterHTML = (m, cls = "poster") => m.poster
   ? `<div class="${cls}" style="background-image:url('${esc(m.poster)}')" role="img" aria-label="Affiche"></div>`
@@ -351,7 +358,7 @@ function renderFilm(id) {
     body = `<ul class="timeline">${shows.map(s => {
       const t = state.data.theaters[s[1]];
       return `<li><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}</div>
-        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${s[3]}${s[4].length ? " · " + esc(s[4].join(" ")) : ""}</small></div></li>`;
+        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${esc(label(s))}</small></div></li>`;
     }).join("")}</ul>`;
   } else {
     const byT = new Map();
@@ -365,8 +372,7 @@ function renderFilm(id) {
         let cls = past ? "past" : "";
         if (!past && !soonDone) { cls = "soon"; soonDone = true; }
         if (s[3] === "VF") cls += " vf";
-        const extra = [s[3], ...s[4]].join(" ");
-        return `<span class="time ${cls}">${s[2].slice(11)}<small>${esc(extra)}</small></span>`;
+        return `<span class="time ${cls}">${s[2].slice(11)}<small>${esc(label(s))}</small></span>`;
       }).join("");
       const fav = state.favs.has(g.tid);
       return `<li class="cine">
