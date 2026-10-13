@@ -247,6 +247,29 @@ a.time { color: inherit; text-decoration: none; }
 .install button { border: 0; background: var(--enamel); color: #fff; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
 .install .x { background: none; color: var(--muted); padding: 6px; }
 
+/* --- Feuille d'actions (séance) --- */
+.timeline li.tl { display: flex; align-items: center; }
+.timeline li.tl > .row { flex: 1; min-width: 0; }
+.timeline .more { flex: none; border: 0; background: none; color: var(--muted); font-size: 22px; padding: 6px 2px 6px 10px; line-height: 1; }
+.legend .hint { border: 0; background: none; padding: 0; color: var(--focus); font-size: 12px; font-weight: 600; }
+dialog.sheet {
+  width: 100%; max-width: 640px; max-height: 88dvh; margin: auto auto 0; border: 0; padding: 0 0 calc(env(safe-area-inset-bottom) + 12px);
+  border-radius: 18px 18px 0 0; background: var(--surface); color: var(--ink);
+}
+dialog.sheet::backdrop { background: rgba(0,0,0,.55); }
+dialog.sheet .card-top h2 { font-size: 22px; line-height: 1.05; }
+#sheetBody { padding: 0 16px 8px; }
+.sheet-sub { margin: 0; color: var(--muted); font-size: 14px; }
+.card-actions .btn { border-radius: 10px; padding: 11px 16px; font: 600 15px "Barlow", sans-serif; background: var(--ticket); color: var(--ticket-ink); text-decoration: none; }
+dialog.sheet .card-actions button.ghost { background: var(--page); color: var(--ink); }
+dialog.sheet .list-sep { margin: 20px 0 6px; }
+.pairs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pairs a { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; color: inherit; text-decoration: none; padding: 6px; border-radius: 10px; background: var(--page); }
+.pairs .poster { width: 44px; font-size: 18px; }
+.pairs b { display: block; font: 600 17px/1.1 "Barlow Condensed", sans-serif; }
+.pairs span, .pairs small { display: block; font-size: 13px; color: var(--muted); }
+.muted { color: var(--muted); font-size: 14px; }
+
 /* --- Ma carte --- */
 .iconbtn { margin-left: auto; border: 0; background: none; color: #fff; font-size: 20px; padding: 4px 8px; line-height: 1; }
 .cardbtn { border: 1.5px solid rgba(255,255,255,.4); background: none; color: #fff;
@@ -317,6 +340,12 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
 
   <main id="main"></main>
 
+  <!-- Actions sur une séance : double séance, partage, calendrier -->
+  <dialog class="sheet" id="sheet" aria-label="Séance">
+    <div class="card-top"><h2 id="sheetTitle"></h2><button class="x" id="sheetClose" aria-label="Fermer">✕</button></div>
+    <div id="sheetBody"></div>
+  </dialog>
+
   <!-- Ma carte UGC : capture gardée uniquement sur ce téléphone (IndexedDB), jamais envoyée. -->
   <dialog class="card" id="card" aria-label="Ma carte UGC Illimité">
     <div class="card-top"><h2>Ma carte</h2><button class="x" id="cardClose" aria-label="Fermer">✕</button></div>
@@ -366,6 +395,7 @@ async function load() {
   state.day = state.data.days[0] || today;
   // Index par film pour aller vite.
   state.byMovie = new Map();
+  state.data.showtimes.forEach((s, i) => { s.i = i; });
   for (const s of state.data.showtimes) {
     if (!state.byMovie.has(s[0])) state.byMovie.set(s[0], []);
     state.byMovie.get(s[0]).push(s);
@@ -537,8 +567,9 @@ function renderFilm(id) {
       const url = s[2] >= now && (s[5] || t.allocine);
       const row = url ? `a class="row" href="${esc(url)}" target="_blank" rel="noopener"` : `div class="row"`;
       const end = endTime(s), fav = state.favs.has(s[1]) ? "★ " : "";
-      return `<li><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}${end ? `<small>→ ${end}</small>` : ""}</div>
-        <div class="where">${arrBadge(t)}<span>${fav}${esc(t.name)}</span><small>${esc(label(s))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}></li>`;
+      const more = s[2] >= now ? `<button class="more" data-more="${s.i}" aria-label="Enchaîner un 2e film, partager, calendrier">⋯</button>` : "";
+      return `<li class="tl"><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}${end ? `<small>→ ${end}</small>` : ""}</div>
+        <div class="where">${arrBadge(t)}<span>${fav}${esc(t.name)}</span><small>${esc(label(s))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}>${more}</li>`;
     }).join("")}</ul>`;
   } else {
     const byT = new Map();
@@ -576,7 +607,7 @@ function renderFilm(id) {
       <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
       <button data-view="heure" aria-pressed="${state.view === "heure"}">Par heure</button>
     </div>
-    <div class="legend"><span><i style="background:var(--ugc)"></i>UGC</span><span><i style="background:var(--mk2)"></i>MK2</span><span><i style="background:var(--indep)"></i>Indé</span><span>n° = arrondissement</span><span>→ fin estimée, pubs comprises</span></div>
+    <div class="legend"><span><i style="background:var(--ugc)"></i>UGC</span><span><i style="background:var(--mk2)"></i>MK2</span><span><i style="background:var(--indep)"></i>Indé</span><span>n° = arrondissement</span><span>→ fin estimée, pubs comprises</span>${state.view === "heure" ? `<span>⋯ = enchaîner un 2e film, partager, calendrier</span>` : `<button class="hint" data-view="heure">🎬 Enchaîner un 2e film, partager : vue « Par heure » ›</button>`}</div>
     ${pastLink}${body}`;
 }
 
@@ -631,6 +662,8 @@ $("#main").addEventListener("click", e => {
     if (film.dataset.goday) { state.day = film.dataset.goday; renderDays(); }  // recherche : jour de la prochaine séance
     location.hash = `#/film/${film.dataset.film}`; return;
   }
+  const more = e.target.closest("[data-more]");
+  if (more) { openSheet(state.data.showtimes[more.dataset.more]); return; }
   const seenFilm = e.target.closest("[data-seen-film]");
   if (seenFilm) {
     const id = seenFilm.dataset.seenFilm;
@@ -652,6 +685,82 @@ $("#main").addEventListener("click", e => {
 });
 // Rafraîchit les séances passées toutes les minutes.
 setInterval(() => { if (state.data && document.visibilityState === "visible") route(); }, 60000);
+
+// --- Actions sur une séance ---
+const showDate = s => `${fmtDay(s[2].slice(0, 10))} à ${s[2].slice(11).replace(":", "h")}`;
+const bookUrl = s => s[5] || state.data.theaters[s[1]].allocine || location.href;
+
+// Double séance : films qui commencent après la fin (≤ 75 min d'attente), même salle puis même
+// arrondissement ; les films déjà vus et les filtres actifs (VO…) sont respectés.
+function doubleFeature(s) {
+  const end = endMin(s); if (end == null) return [];
+  const t = state.data.theaters[s[1]], day = s[2].slice(0, 10);
+  const minOf = x => +x[2].slice(11, 13) * 60 + +x[2].slice(14, 16);
+  const seenFilm = new Set();
+  return filtered(state.data.showtimes.filter(x => x[2].startsWith(day)), true)
+    .filter(x => x[0] !== s[0] && !state.seen.has(x[0]))
+    .map(x => ({ x, wait: minOf(x) - end, same: x[1] === s[1], near: state.data.theaters[x[1]]?.arr === t.arr }))
+    .filter(c => c.wait >= -5 && c.wait <= 75 && (c.same || c.near))
+    .sort((a, b) => (b.same - a.same) || a.wait - b.wait)
+    .filter(c => !seenFilm.has(c.x[0] + c.x[1]) && seenFilm.add(c.x[0] + c.x[1]))  // 1 séance par film et par salle
+    .slice(0, 8);
+}
+
+function icsFor(s) {
+  const m = state.data.movies[s[0]], t = state.data.theaters[s[1]];
+  const d = s[2].replace(/[-:]/g, ""), e = endMin(s) ?? (+s[2].slice(11, 13) * 60 + +s[2].slice(14, 16) + 120);
+  const endDay = new Date(s[2].slice(0, 10) + "T12:00:00"); endDay.setDate(endDay.getDate() + Math.floor(e / 1440));
+  const dEnd = endDay.toISOString().slice(0, 10).replace(/-/g, "") + "T" + String(Math.floor(e % 1440 / 60)).padStart(2, "0") + String(e % 60).padStart(2, "0") + "00";
+  const txt = v => String(v).replace(/[\\,;]/g, c => "\\" + c).replace(/\n/g, "\\n");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Cine//FR", "BEGIN:VEVENT",
+    `UID:${d}-${s[1]}-${s[0]}@cine`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
+    `DTSTART:${d}00`, `DTEND:${dEnd}`, `SUMMARY:${txt("🎬 " + m.title)}`, `LOCATION:${txt(`${t.name}, ${t.address}, ${t.zip} Paris`)}`,
+    `DESCRIPTION:${txt([label(s), "Réserver : " + bookUrl(s)].filter(Boolean).join("\n"))}`, `URL:${bookUrl(s)}`,
+    "BEGIN:VALARM", "TRIGGER:-PT45M", "ACTION:DISPLAY", `DESCRIPTION:${txt(m.title)}`, "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+}
+
+function openSheet(s) {
+  const m = state.data.movies[s[0]], t = state.data.theaters[s[1]], end = endTime(s);
+  $("#sheetTitle").textContent = m.title;
+  const pairs = doubleFeature(s);
+  const pairHTML = pairs.length ? `<ul class="pairs">${pairs.map(({ x, wait, same }) => {
+      const pm = state.data.movies[x[0]], pt = state.data.theaters[x[1]], pe = endTime(x);
+      return `<li><a href="${esc(bookUrl(x))}" target="_blank" rel="noopener">${posterHTML(pm)}
+        <div><b>${esc(pm.title)}</b><span>${x[2].slice(11)}${pe ? ` → ${pe}` : ""} · ${same ? "même salle" : esc(pt.name)}</span>
+        <small>${wait <= 0 ? "juste après" : `${wait} min d'attente`}${pm.rating ? ` · ★ ${String(pm.rating).replace(".", ",")}` : ""}${label(x) ? " · " + esc(label(x)) : ""}</small></div></a></li>`;
+    }).join("")}</ul>`
+    : `<p class="muted">Aucun autre film ne commence juste après dans cette salle ou ce quartier${state.vo || state.endBy || state.group ? " (avec tes filtres)" : ""}.</p>`;
+  $("#sheetBody").innerHTML = `
+    <p class="sheet-sub">${esc(t.name)} · ${esc(showDate(s))}${end ? ` → ${end}` : ""}${label(s) ? " · " + esc(label(s)) : ""}</p>
+    <div class="card-actions">
+      <a class="btn" href="${esc(bookUrl(s))}" target="_blank" rel="noopener">Réserver</a>
+      <button class="ghost" data-share="${s.i}">Partager</button>
+      <button class="ghost" data-ics="${s.i}">Ajouter au calendrier</button>
+    </div>
+    <h3 class="list-sep">🎬 Enchaîner un 2e film</h3>${pairHTML}`;
+  $("#sheet").showModal();
+}
+$("#sheetClose").onclick = () => $("#sheet").close();
+$("#sheet").addEventListener("click", async e => {
+  if (e.target === $("#sheet")) return $("#sheet").close();  // clic à côté
+  const sh = e.target.closest("[data-share]"), ic = e.target.closest("[data-ics]");
+  if (sh) {
+    const s = state.data.showtimes[sh.dataset.share], m = state.data.movies[s[0]], t = state.data.theaters[s[1]];
+    const text = `${m.title} — ${t.name}, ${showDate(s)}${label(s) ? " (" + label(s) + ")" : ""}`;
+    try {
+      if (navigator.share) await navigator.share({ title: m.title, text, url: bookUrl(s) });
+      else { await navigator.clipboard.writeText(`${text}\n${bookUrl(s)}`); sh.textContent = "Copié ✓"; }
+    } catch {}
+  }
+  if (ic) {
+    const s = state.data.showtimes[ic.dataset.ics];
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([icsFor(s)], { type: "text/calendar;charset=utf-8" }));
+    a.download = `seance-${state.data.movies[s[0]].title.replace(/[^\w]+/g, "-").toLowerCase()}.ics`;
+    document.body.append(a); a.click(); a.remove();
+  }
+});
 
 // --- Ma carte UGC (stockée uniquement sur l'appareil, dans IndexedDB) ---
 const cardDB = {
