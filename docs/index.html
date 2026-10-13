@@ -121,6 +121,8 @@ button { cursor: pointer; }
 .films li:first-child .film-row { border-radius: 12px 12px 0 0; }
 .films li:last-child .film-row { border-radius: 0 0 12px 12px; }
 .films li:only-child .film-row { border-radius: 12px; }
+.list-sep { margin: 14px 16px 0; font: 600 13px "Barlow", sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.list-sep + .films { padding-top: 6px; }
 .poster {
   width: 52px; aspect-ratio: 2/3; border-radius: 4px; background: var(--line) center/cover no-repeat;
   display: grid; place-items: center; color: var(--muted); font: 600 20px "Barlow Condensed";
@@ -414,21 +416,31 @@ function renderList() {
     const fa = a.m.release > t0, fb = b.m.release > t0;
     return fa !== fb ? fa - fb : fa ? a.m.release.localeCompare(b.m.release) : b.m.release.localeCompare(a.m.release);
   };
-  // « Mieux notés » : note des spectateurs AlloCiné ; les films sans note (ou < 20 avis) passent après.
+  // « Mieux notés » : d'abord les films récents (sortis en salle depuis 3 mois, ou à venir),
+  // puis ceux sortis avant (reprises comprises) ; dans chaque groupe, par note des spectateurs
+  // AlloCiné (les films sans note ou avec moins de 20 avis passent après).
   const score = m => m.rating && (m.votes == null || m.votes >= 20) ? m.rating : 0;
-  rows.sort((a, b) => (state.sort === "note" && score(b.m) - score(a.m))
+  const recentSince = (() => { const d = new Date(t0 + "T12:00:00"); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10); })();
+  const isRecent = m => !!m.release && m.release >= recentSince;
+  const byNote = state.sort === "note";
+  rows.sort((a, b) => (byNote && (isRecent(b.m) - isRecent(a.m) || score(b.m) - score(a.m)))
     || (state.nouv && byRelease(a, b)) || b.theaters - a.theaters || b.n - a.n);
   setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : "");
   if (!rows.length) {
     $("#main").innerHTML = emptyHTML("Aucun film trouvé", q ? "Vérifie l'orthographe ou enlève des filtres." : "Change de jour ou enlève des filtres.");
     return;
   }
-  $("#main").innerHTML = `<ul class="films">${rows.map(r => `
+  const rowHTML = r => `
     <li><button class="film-row" data-film="${r.id}">
       ${posterHTML(r.m)}
       <div>${badge(r.m)}<h2>${esc(r.m.title)}</h2><p>${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}${rating(r.m)}</p></div>
       <div class="next">${r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`}</div>
-    </button></li>`).join("")}</ul>`;
+    </button></li>`;
+  const list = rs => `<ul class="films">${rs.map(rowHTML).join("")}</ul>`;
+  const recent = rows.filter(r => isRecent(r.m)), older = rows.filter(r => !isRecent(r.m));
+  $("#main").innerHTML = byNote && recent.length && older.length
+    ? `<h3 class="list-sep">Sorties récentes</h3>${list(recent)}<h3 class="list-sep">Sortis il y a plus de 3 mois</h3>${list(older)}`
+    : list(rows);
 }
 
 function emptyHTML(title, hint) {
