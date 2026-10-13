@@ -37,3 +37,11 @@ la réservation de ce film à cette heure.
 Le filtre « ✦ Nouveautés » garde les films sortis depuis 7 jours et ceux pas encore sortis
 (avant-premières), du plus récent au plus ancien. Badge « Nouveau » / « Sortie mer. 21 oct. »
 dans la liste ; les séances en avant-première portent la mention « Avant-première ».
+
+## Modes et confort
+- **⚡ Maintenant** : toutes les séances qui commencent dans les 90 min, tous films confondus
+  (mes salles ★ d'abord).
+- **📍 Près de moi** : salles à moins de 3 km, distance et temps à pied affichés. Coordonnées des
+  salles géocodées une fois (service d'adresses de l'IGN) et gardées dans `data/geo.json`.
+- VO par défaut (cache seulement les films doublés), choix mémorisé ; séances passées masquées
+  (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs) ; note des spectateurs.
