@@ -34,6 +34,9 @@
        "lastName": "Doe"
       }
      }
+    ],
+    "languages": [
+     "ENGLISH"
     ]
    },
    "showtimes": {
@@ -62,13 +65,13 @@
       }
      }
     ],
-    "local": [
+    "multiple": [
      {
       "internalId": 2,
       "startsAt": "2026-10-13T20:30:00",
-      "diffusionVersion": "LOCAL",
+      "diffusionVersion": "DUBBED",
       "tags": [
-       "Localization.Language.French"
+       "Localization.Version.French"
       ],
       "projection": [
        "F_3D"
@@ -88,8 +91,7 @@
        ]
       }
      }
-    ],
-    "multiple": []
+    ]
    }
   },
   {
