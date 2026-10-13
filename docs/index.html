@@ -126,6 +126,11 @@ button { cursor: pointer; }
   display: grid; place-items: center; color: var(--muted); font: 600 20px "Barlow Condensed";
 }
 .film-row h2 { margin: 0; font: 600 20px/1.1 "Barlow Condensed", sans-serif; }
+.badge {
+  display: inline-block; margin-bottom: 3px; padding: 2px 7px 1px; border-radius: 4px;
+  background: var(--ticket); color: var(--ticket-ink); font: 600 12px/1.3 "Barlow", sans-serif;
+  text-transform: uppercase; letter-spacing: .04em;
+}
 .film-row p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 .next { text-align: right; font-family: "Barlow Condensed"; line-height: 1.1; }
 .next b { display: block; font-size: 20px; font-weight: 600; }
@@ -221,6 +226,7 @@ a.time { color: inherit; text-decoration: none; }
   </div>
 
   <div class="filters" role="group" aria-label="Filtres">
+    <button class="chip" data-f="nouv" aria-pressed="false">✦ Nouveautés</button>
     <button class="chip" data-f="vo" aria-pressed="false">VO</button>
     <button class="chip" data-f="vf" aria-pressed="false">VF</button>
     <button class="chip" data-f="fav" aria-pressed="false">★ Mes salles</button>
@@ -246,7 +252,7 @@ const store = {
 };
 
 const state = {
-  data: null, day: null, q: "", vo: false, vf: false, fav: false, later: false,
+  data: null, day: null, q: "", nouv: false, vo: false, vf: false, fav: false, later: false,
   group: "", arr: "", view: store.get("view", "salle"), favs: new Set(store.get("favs", [])),
 };
 
@@ -308,6 +314,15 @@ function filtered(list) {
   });
 }
 
+// Nouveautés : films sortis depuis 7 jours, ou pas encore sortis (avant-premières).
+const today = () => parisNow().slice(0, 10);
+const weekAgo = () => { const d = new Date(today() + "T12:00:00"); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10); };
+const isNew = m => !!m.release && m.release >= weekAgo();
+const fmtDay = d => new Date(d + "T12:00:00").toLocaleDateString("fr-FR", d.slice(0, 4) === today().slice(0, 4)
+  ? { weekday: "short", day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "numeric" });
+const badge = m => !isNew(m) ? "" : m.release > today()
+  ? `<span class="badge">Sortie ${esc(fmtDay(m.release))}</span>` : `<span class="badge">Nouveau</span>`;
+
 // « FR » (film français) n'est pas affiché : la version va de soi.
 const label = s => [s[3] === "FR" ? "" : s[3], ...s[4]].filter(Boolean).join(" ");
 
@@ -325,13 +340,14 @@ function renderList() {
     const m = state.data.movies[id];
     if (!m) continue;
     if (q && !norm(m.title).includes(q) && !norm(m.original).includes(q)) continue;
+    if (state.nouv && !isNew(m)) continue;
     const shows = filtered(list);
     if (!shows.length) continue;
     const upcoming = shows.filter(s => s[2] >= now);
     const theaters = new Set(shows.map(s => s[1]));
     rows.push({ id, m, n: shows.length, theaters: theaters.size, next: upcoming[0]?.[2] });
   }
-  rows.sort((a, b) => b.theaters - a.theaters || b.n - a.n);
+  rows.sort((a, b) => (state.nouv && (b.m.release || "").localeCompare(a.m.release || "")) || b.theaters - a.theaters || b.n - a.n);
   setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : "");
   if (!rows.length) {
     $("#main").innerHTML = `<div class="empty"><h2>Aucun film trouvé</h2><p>${q ? "Vérifie l'orthographe ou enlève des filtres." : "Change de jour ou enlève des filtres."}</p></div>`;
@@ -340,7 +356,7 @@ function renderList() {
   $("#main").innerHTML = `<ul class="films">${rows.map(r => `
     <li><button class="film-row" data-film="${r.id}">
       ${posterHTML(r.m)}
-      <div><h2>${esc(r.m.title)}</h2><p>${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}</p></div>
+      <div>${badge(r.m)}<h2>${esc(r.m.title)}</h2><p>${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}</p></div>
       <div class="next">${r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`}</div>
     </button></li>`).join("")}</ul>`;
 }
@@ -352,7 +368,7 @@ function renderFilm(id) {
   $("#title").textContent = "Séances Illimité";
   const now = parisNow();
   const shows = filtered(state.byMovie.get(id) || []);
-  const meta = [m.runtime, m.genres?.slice(0, 2).join(", "), m.directors?.length ? "de " + m.directors.join(", ") : ""].filter(Boolean).join(" · ");
+  const meta = [m.release && (m.release > today() ? "sortie le " : "sorti le ") + fmtDay(m.release), m.runtime, m.genres?.slice(0, 2).join(", "), m.directors?.length ? "de " + m.directors.join(", ") : ""].filter(Boolean).join(" · ");
   const orig = m.original && norm(m.original) !== norm(m.title) ? `<p>${esc(m.original)}</p>` : "";
   let body;
   if (!shows.length) {
