@@ -214,6 +214,29 @@ a.time { color: inherit; text-decoration: none; }
 .install button { border: 0; background: var(--enamel); color: #fff; border-radius: 8px; padding: 8px 12px; font-weight: 600; }
 .install .x { background: none; color: var(--muted); padding: 6px; }
 
+/* --- Ma carte --- */
+.cardbtn {
+  margin-left: auto; border: 1.5px solid rgba(255,255,255,.4); background: none; color: #fff;
+  border-radius: 999px; padding: 5px 11px; font: 600 14px "Barlow", sans-serif; white-space: nowrap;
+}
+dialog.card {
+  width: 100%; max-width: 640px; height: 100dvh; max-height: none; margin: 0 auto; border: 0; padding: 0;
+  background: #fff; color: #16203A;
+}
+dialog.card::backdrop { background: rgba(0,0,0,.6); }
+.card-top { display: flex; align-items: center; padding: calc(env(safe-area-inset-top) + 12px) 16px 8px; }
+.card-top h2 { margin: 0; flex: 1; font: 700 24px "Barlow Condensed", sans-serif; }
+.card-top .x { border: 0; background: none; font-size: 22px; padding: 6px; color: inherit; }
+#cardBody { padding: 8px 16px 24px; }
+#cardBody img { display: block; width: 100%; max-height: 70dvh; object-fit: contain; border-radius: 12px; }
+#cardBody p { color: #5B6680; font-size: 14px; margin: 10px 0; }
+.card-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.card-actions button { border: 0; border-radius: 10px; padding: 11px 16px; font: 600 15px "Barlow", sans-serif; background: #1B2A4E; color: #fff; }
+.card-actions button.ghost { background: #E8EDF4; color: #16203A; }
+.card-num { display: flex; gap: 8px; margin-top: 14px; }
+.card-num input { flex: 1; min-width: 0; border: 1.5px solid #CDD5E2; border-radius: 10px; padding: 10px 12px; font: 500 17px "Barlow", sans-serif; letter-spacing: .04em; }
+.card-num button { border: 0; border-radius: 10px; padding: 0 14px; background: #F2C230; color: #1B2A4E; font: 600 14px "Barlow", sans-serif; }
+
 [hidden] { display: none !important; }
 @media (prefers-reduced-motion: no-preference) {
   .cinemas, .films, .timeline { animation: in .18s ease-out; }
@@ -224,7 +247,7 @@ a.time { color: inherit; text-decoration: none; }
 <body>
 <div class="app" id="app">
   <header class="plate">
-    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Séances Illimité</span></h1>
+    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Séances Illimité</span><button class="cardbtn" id="cardBtn" aria-haspopup="dialog">🎟 Ma carte</button></h1>
     <label class="search" id="searchBox">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Chercher un film" autocomplete="off" enterkeyhint="search" aria-label="Chercher un film">
@@ -254,6 +277,13 @@ a.time { color: inherit; text-decoration: none; }
   <div class="status" id="status" aria-live="polite"></div>
 
   <main id="main"></main>
+
+  <!-- Ma carte UGC : capture gardée uniquement sur ce téléphone (IndexedDB), jamais envoyée. -->
+  <dialog class="card" id="card" aria-label="Ma carte UGC Illimité">
+    <div class="card-top"><h2>Ma carte</h2><button class="x" id="cardClose" aria-label="Fermer">✕</button></div>
+    <div id="cardBody"></div>
+    <input type="file" id="cardFile" accept="image/*" hidden>
+  </dialog>
 </div>
 
 <script>
@@ -578,6 +608,67 @@ $("#main").addEventListener("click", e => {
 });
 // Rafraîchit les séances passées toutes les minutes.
 setInterval(() => { if (state.data && document.visibilityState === "visible") route(); }, 60000);
+
+// --- Ma carte UGC (stockée uniquement sur l'appareil, dans IndexedDB) ---
+const cardDB = {
+  open: () => new Promise((ok, ko) => {
+    const r = indexedDB.open("ma-carte", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => ok(r.result); r.onerror = () => ko(r.error);
+  }),
+  async op(mode, fn) {
+    const db = await this.open();
+    return new Promise((ok, ko) => {
+      const tx = db.transaction("kv", mode), req = fn(tx.objectStore("kv"));
+      tx.oncomplete = () => ok(req.result); tx.onerror = () => ko(tx.error);
+    });
+  },
+  get: k => cardDB.op("readonly", st => st.get(k)),
+  set: (k, v) => cardDB.op("readwrite", st => st.put(v, k)),
+  del: k => cardDB.op("readwrite", st => st.delete(k)),
+};
+let wakeLock = null, cardUrl = null;
+async function renderCard() {
+  let img = null, num = "";
+  try { img = await cardDB.get("image"); num = (await cardDB.get("number")) || ""; } catch {}
+  if (cardUrl) URL.revokeObjectURL(cardUrl);
+  cardUrl = img ? URL.createObjectURL(img) : null;
+  const numHTML = `<div class="card-num"><input id="cardNum" inputmode="numeric" autocomplete="off" placeholder="N° de carte (facultatif)" value="${esc(num)}" aria-label="Numéro de carte">
+    <button id="cardCopy" type="button">Copier</button></div>`;
+  $("#cardBody").innerHTML = img
+    ? `<img src="${cardUrl}" alt="Ma carte UGC Illimité">
+       <p>Monte la luminosité de l'écran pour que le code se lise bien en caisse.</p>${numHTML}
+       <div class="card-actions"><button class="ghost" id="cardPick">Changer l'image</button><button class="ghost" id="cardDel">Supprimer</button></div>`
+    : `<p>Ajoute une capture d'écran de ta carte (depuis l'appli UGC ou une photo de la carte) pour l'avoir sous la main.</p>
+       <p><b>Elle reste uniquement sur ce téléphone</b> : elle n'est envoyée nulle part et n'est pas publiée sur le site.</p>
+       <div class="card-actions"><button id="cardPick">Ajouter ma carte</button></div>${numHTML}`;
+}
+async function openCard() {
+  await renderCard();
+  $("#card").showModal();
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}  // garde l'écran allumé en caisse
+}
+$("#cardBtn").onclick = openCard;
+$("#cardClose").onclick = () => $("#card").close();
+$("#card").addEventListener("close", () => { wakeLock?.release?.(); wakeLock = null; });
+$("#cardBody").addEventListener("click", async e => {
+  if (e.target.id === "cardPick") $("#cardFile").click();
+  if (e.target.id === "cardDel" && confirm("Supprimer la carte de ce téléphone ?")) { await cardDB.del("image"); renderCard(); }
+  if (e.target.id === "cardCopy") {
+    const v = $("#cardNum").value.trim(); if (!v) return;
+    try { await navigator.clipboard.writeText(v); e.target.textContent = "Copié ✓"; } catch { $("#cardNum").select(); }
+  }
+});
+$("#cardBody").addEventListener("change", e => {
+  if (e.target.id === "cardNum") cardDB.set("number", e.target.value.trim()).catch(() => {});
+});
+$("#cardFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try { await cardDB.set("image", f); } catch { alert("Impossible d'enregistrer l'image sur ce téléphone."); }
+  renderCard();
+};
+if (location.hash === "#carte") openCard();  // raccourci : …/#carte
 
 // --- Installation (PWA) ---
 let deferred;
