@@ -170,7 +170,9 @@ button { cursor: pointer; }
 
 /* Vue chronologique */
 .timeline { list-style: none; margin: 0; padding: 12px 16px 40px; }
-.timeline li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.timeline li { border-bottom: 1px solid var(--line); }
+.timeline .row { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px 0; align-items: center; color: inherit; text-decoration: none; }
+.timeline .go { margin-left: auto; padding-left: 4px; font-size: 22px; line-height: 1; color: var(--muted); }
 .timeline .when { font: 600 22px/1 "Barlow Condensed"; }
 .timeline .when.past { color: var(--past); }
 .timeline .where { display: flex; gap: 8px; align-items: center; min-width: 0; }
@@ -357,8 +359,10 @@ function renderFilm(id) {
   } else if (state.view === "heure") {
     body = `<ul class="timeline">${shows.map(s => {
       const t = state.data.theaters[s[1]];
-      return `<li><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}</div>
-        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${esc(label(s))}</small></div></li>`;
+      // Toute la ligne ouvre la page de la salle (horaires + réservation), comme « réserver ».
+      const row = t.allocine ? `a class="row" href="${esc(t.allocine)}" target="_blank" rel="noopener"` : `div class="row"`;
+      return `<li><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}</div>
+        <div class="where"><span class="arr ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span><span>${esc(t.name)}</span><small>${esc(label(s))}</small>${t.allocine ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}></li>`;
     }).join("")}</ul>`;
   } else {
     const byT = new Map();
