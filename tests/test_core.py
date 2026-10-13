@@ -61,3 +61,15 @@ def test_parse_cartes_salles():
     cards = parse_theater_cards(page)
     assert cards == [{"id": "C0159", "name": "UGC Ciné Cité Les Halles",
                       "address": "7 place de la Rotonde 75001 Paris", "zipcode": "75001"}]
+
+
+def test_version_film_francais():
+    film = {"internalId": 7, "title": "Garance", "languages": ["FRENCH"]}
+    results = [{"movie": film, "showtimes": {
+        "original": [{"startsAt": "2026-10-13T10:00:00", "diffusionVersion": "ORIGINAL"}],
+        "multiple": [{"startsAt": "2026-10-13T12:00:00", "diffusionVersion": "LOCAL",
+                      "experience": ["INFINITE"]}]}}]
+    movies, shows = {}, []
+    parse_results(results, "C0102", movies, shows)
+    assert [s[3] for s in shows] == ["FR", "FR"]
+    assert shows[1][4] == ["Infinite"]

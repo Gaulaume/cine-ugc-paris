@@ -72,7 +72,7 @@ CINEMAS: list[Cinema] = [
     _c("Le Saint-André des Arts", "30 rue Saint-André-des-Arts", "75006", "Indépendant"),
     _c("Les 3 Luxembourg", "67 rue Monsieur-le-Prince", "75006", "Indépendant"),
     _c("Le Saint-Germain-des-Prés", "22 rue Guillaume Apollinaire", "75006", "Indépendant"),
-    _c("Jeu de Paume", "1 place de la Concorde", "75008", "Indépendant"),
+    _c("Jeu de Paume", "1 place de la Concorde", "75008", "Indépendant", allocine="W7588"),  # AlloCiné le classe en 75001
     _c("Le Balzac", "1 rue Balzac", "75008", "Indépendant"),
     _c("Le Lincoln", "14 rue Lincoln", "75008", "Indépendant"),
     _c("Publicis Cinémas", "133 avenue des Champs-Élysées", "75008", "Indépendant"),

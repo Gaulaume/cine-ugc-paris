@@ -81,17 +81,25 @@ def match_cinemas(cinemas: list[Cinema], allocine: list[dict], min_score: float 
 
 # --- Séances ---------------------------------------------------------------
 
-def _version(raw: dict) -> str:
-    tags = raw.get("tags") or []
+def _version(raw: dict, movie: dict) -> str:
+    """« VO » (film étranger en version originale), « VF » (doublé) ou « FR » (film français).
+
+    AlloCiné : diffusionVersion vaut ORIGINAL, DUBBED (doublé) ou LOCAL (film français).
+    """
     dv = raw.get("diffusionVersion")
-    if dv in ("DUBBED", "LOCAL") or "Localization.Language.French" in tags:
+    if dv == "DUBBED":
         return "VF"
+    langs = movie.get("languages") or []
+    if dv == "LOCAL" or "Localization.Language.French" in (raw.get("tags") or []) \
+            or (langs and langs[0] == "FRENCH"):
+        return "FR"
     return "VO"
 
 
 def _formats(raw: dict) -> list[str]:
     labels = {"IMAX": "IMAX", "F_3D": "3D", "E_4DX": "4DX", "SCREENX": "ScreenX",
-              "DOLBY_CINEMA": "Dolby Cinema", "PLF": "Grand écran", "F_70MM": "70mm",
+              "DOLBY_CINEMA": "Dolby Cinema", "PLF": "Grand écran", "INFINITE": "Infinite",
+              "E_SCREENX": "ScreenX", "SCREEN_X": "ScreenX", "4DX": "4DX", "F_70MM": "70mm",
               "F_35MM": "35mm", "DOLBY_ATMOS": "Atmos"}
     out = []
     for key in ("experience", "projection", "sound", "picture"):
@@ -134,4 +142,4 @@ def parse_results(results: list[dict], theater_key: str, movies: dict, showtimes
                 starts = raw.get("startsAt")
                 if not starts:
                     continue
-                showtimes.append([mid, theater_key, starts[:16], _version(raw), _formats(raw)])
+                showtimes.append([mid, theater_key, starts[:16], _version(raw, movie), _formats(raw)])

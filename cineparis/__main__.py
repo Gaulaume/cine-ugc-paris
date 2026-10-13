@@ -52,6 +52,9 @@ def cmd_scrape(args) -> int:
     if not THEATERS_FILE.exists() or args.resolve:
         cmd_resolve(args)
     resolved = json.loads(THEATERS_FILE.read_text())["matched"]
+    # Les codes forcés dans cinemas.py priment sur la détection enregistrée.
+    resolved.update({c.name: {"id": c.allocine, "name": c.name, "forced": True}
+                     for c in CINEMAS if c.allocine})
 
     today = datetime.now(PARIS).date()
     days = [today + timedelta(days=i) for i in range(args.days)]
