@@ -1,0 +1,49 @@
+# TEMPORAIRE : inspecte le JSON brut d'AlloCiné (sera supprimé).
+name: Diagnostic AlloCiné
+on:
+  push:
+    branches: [ccr-ebdfd861-fcj7rd]
+    paths: [.github/workflows/diag.yml]
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements.txt
+      - name: Valeurs distinctes
+        run: |
+          python - <<'PY'
+          import json, collections
+          from datetime import date, timedelta
+          from cineparis.allocine import AllocineClient
+          c = AllocineClient()
+          ids = ["C0159","C0026","C0175","W7509","C0065","C0050","C0104","C0089","W7588","C0013"]
+          cnt = collections.defaultdict(collections.Counter)
+          sample = None
+          for tid in ids:
+              for d in (date.today()+timedelta(days=1),):
+                  for it in c.showtimes(tid, d):
+                      m = it["movie"]
+                      for k, grp in (it.get("showtimes") or {}).items():
+                          for s in grp or []:
+                              cnt["groupKey"][k] += 1
+                              cnt["groupKey/dv"][f'{k} {s.get("diffusionVersion")}'] += 1
+                              for f in ("tags","experience","projection","sound","picture","format"):
+                                  v = s.get(f)
+                                  for x in (v if isinstance(v, list) else [v]):
+                                      cnt[f][json.dumps(x)] += 1
+                              cnt["keys"][",".join(sorted(s))] += 1
+                              if sample is None and k != "original": sample = s
+                      langs = [l if isinstance(l,str) else json.dumps(l)[:60] for l in (m.get("languages") or [])]
+                      cnt["movie.languages"][",".join(langs)] += 1
+                      cnt["movie.keys"][",".join(sorted(m))] += 1
+          for f, cc in cnt.items():
+              print(f"== {f}")
+              for k, v in cc.most_common(40): print(f"   {v:5} {k}")
+          print("== exemple séance"); print(json.dumps(sample, ensure_ascii=False, indent=1)[:3000])
+          r = c.showtimes("C0159", date.today()+timedelta(days=1))
+          print("== exemple film"); print(json.dumps(r[0]["movie"], ensure_ascii=False)[:2500])
+          print("== clés résultat", list(r[0].keys()))
+          PY
