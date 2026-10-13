@@ -141,6 +141,7 @@ button { cursor: pointer; }
 .film-head .poster { width: 96px; border-radius: 6px; font-size: 32px; }
 .film-head h2 { margin: 0; font: 700 30px/1.02 "Barlow Condensed", sans-serif; }
 .film-head p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+.film-head .ext { display: inline-block; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--focus); text-decoration: none; }
 .view-toggle { display: flex; margin: 0 16px; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
 .view-toggle button { flex: 1; border: 0; background: var(--surface); padding: 8px; font-size: 14px; font-weight: 600; }
 .view-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
@@ -362,6 +363,8 @@ const distLabel = t => {
   return `${km < 0.1 ? "< 100 m" : km < 1 ? Math.round(km * 10) * 100 + " m" : km.toFixed(1).replace(".", ",") + " km"}${walk <= 30 ? ` · ${Math.max(walk, 1)} min à pied` : ""}`;  // au-delà, on prend le métro
 };
 // Itinéraire Google Maps vers la salle (depuis la position du téléphone).
+// Fiche Letterboxd (recherche par titre original : Letterboxd n'a pas d'API publique pour les notes).
+const letterboxdUrl = m => "https://letterboxd.com/search/films/" + encodeURIComponent(m.original || m.title) + "/";
 const mapsUrl = t => "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(`${t.name}, ${t.address}, ${t.zip} Paris`);
 const rating = m => m.rating ? ` · ★ ${String(m.rating).replace(".", ",")}` : "";
 const arrBadge = (t, cls = "arr") => `<span class="${cls} ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span>`;
@@ -456,7 +459,7 @@ function renderFilm(id) {
   const pastLink = state.showPast && state.day === today()
     ? `<button class="pastlink" data-past="0">Masquer les séances passées</button>`
     : pastN ? `<button class="pastlink" data-past="1">Voir les ${pastN} séance${pastN > 1 ? "s" : ""} déjà passée${pastN > 1 ? "s" : ""}</button>` : "";
-  const meta = [m.release && (m.release > today() ? "sortie le " : "sorti le ") + fmtDay(m.release), m.runtime, m.rating && "★ " + String(m.rating).replace(".", ","), m.genres?.slice(0, 2).join(", "), m.directors?.length ? "de " + m.directors.join(", ") : ""].filter(Boolean).join(" · ");
+  const meta = [m.release && (m.release > today() ? "sortie le " : "sorti le ") + fmtDay(m.release), m.runtime, m.rating && "★ " + String(m.rating).replace(".", ",") + "/5 AlloCiné", m.genres?.slice(0, 2).join(", "), m.directors?.length ? "de " + m.directors.join(", ") : ""].filter(Boolean).join(" · ");
   const orig = m.original && norm(m.original) !== norm(m.title) ? `<p>${esc(m.original)}</p>` : "";
   let body;
   if (!shows.length) {
@@ -502,7 +505,7 @@ function renderFilm(id) {
   const nT = new Set(shows.map(s => s[1])).size;
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
   $("#main").innerHTML = `
-    <div class="film-head">${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p></div></div>
+    <div class="film-head">${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a></div></div>
     <div class="view-toggle" role="group" aria-label="Affichage">
       <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
       <button data-view="heure" aria-pressed="${state.view === "heure"}">Par heure</button>
