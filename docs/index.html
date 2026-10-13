@@ -177,6 +177,7 @@ a.time { color: inherit; text-decoration: none; }
 .time .end { font-style: normal; font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 1px; }
 .time.soon .end { color: var(--ticket-ink); opacity: .75; }
 .cine-name .dist { display: block; font-size: 12px; color: var(--muted); }
+.cine-name .dist a { font-size: 12px; color: var(--focus); font-weight: 500; }
 .pastlink { display: block; margin: 10px 16px 0; border: 0; background: none; padding: 4px 0; color: var(--focus); font-size: 14px; font-weight: 500; text-decoration: underline; }
 
 /* Vue chronologique */
@@ -326,7 +327,6 @@ function filtered(list) {
     if (state.group && t.group !== state.group) return false;
     if (state.arr && String(t.arr) !== state.arr) return false;
     if (state.fav && !state.favs.has(s[1])) return false;
-    if (state.near && !(distKm(t) <= NEAR_KM)) return false;
     return true;
   });
 }
@@ -349,10 +349,9 @@ const endTime = s => {
   return `${String(Math.floor(t / 60) % 24).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 
-// Distance à vol d'oiseau (km) et temps à pied (~4,5 km/h, détours compris).
-const NEAR_KM = 3;
+// « Près de moi » : distance à vol d'oiseau (km) et temps à pied (~4,5 km/h, détours compris).
 const distKm = t => {
-  if (!state.pos || !t?.geo) return Infinity;
+  if (!state.near || !state.pos || !t?.geo) return Infinity;
   const r = Math.PI / 180, [la, lo] = t.geo, { lat, lon } = state.pos;
   const a = Math.sin((la - lat) * r / 2) ** 2 + Math.cos(lat * r) * Math.cos(la * r) * Math.sin((lo - lon) * r / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(a));
@@ -360,8 +359,10 @@ const distKm = t => {
 const distLabel = t => {
   const km = distKm(t); if (!isFinite(km)) return "";
   const walk = Math.round(km * 1.25 / 4.5 * 60);
-  return `${km < 0.1 ? "< 100 m" : km < 1 ? Math.round(km * 10) * 100 + " m" : km.toFixed(1).replace(".", ",") + " km"} · ${Math.max(walk, 1)} min à pied`;
+  return `${km < 0.1 ? "< 100 m" : km < 1 ? Math.round(km * 10) * 100 + " m" : km.toFixed(1).replace(".", ",") + " km"}${walk <= 30 ? ` · ${Math.max(walk, 1)} min à pied` : ""}`;  // au-delà, on prend le métro
 };
+// Itinéraire Google Maps vers la salle (depuis la position du téléphone).
+const mapsUrl = t => "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(`${t.name}, ${t.address}, ${t.zip} Paris`);
 const rating = m => m.rating ? ` · ★ ${String(m.rating).replace(".", ",")}` : "";
 const arrBadge = (t, cls = "arr") => `<span class="${cls} ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span>`;
 
@@ -412,9 +413,6 @@ function renderList() {
 
 // Message vide, avec une explication si « Près de moi » n'a pas encore de distances.
 function emptyHTML(title, hint) {
-  if (state.near && !Object.values(state.data.theaters).some(t => t.geo))
-    hint = "Les distances des salles ne sont pas encore disponibles : elles arrivent avec la prochaine mise à jour des séances.";
-  else if (state.near) hint = `Aucune salle à moins de ${NEAR_KM} km avec ces filtres. ` + hint;
   return `<div class="empty"><h2>${esc(title)}</h2><p>${esc(hint)}</p></div>`;
 }
 
@@ -427,7 +425,8 @@ function renderSoon() {
   const until = new Date(Date.now() + SOON_MIN * 60000);
   const limit = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(until).replace(" ", "T");
   const shows = filtered(state.data.showtimes).filter(s => s[2] >= now && s[2] <= limit && (!q || norm(state.data.movies[s[0]]?.title).includes(q)));
-  shows.sort((a, b) => (state.favs.has(b[1]) - state.favs.has(a[1])) || a[2].localeCompare(b[2]));
+  const zone = s => state.near ? Math.min(Math.floor(distKm(state.data.theaters[s[1]]) * 1.25 / 4.5 * 6), 9) : 0;  // tranches de 10 min à pied
+  shows.sort((a, b) => (state.favs.has(b[1]) - state.favs.has(a[1])) || zone(a) - zone(b) || a[2].localeCompare(b[2]));
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans les ${SOON_MIN} min` : "");
   if (!shows.length) {
     $("#main").innerHTML = emptyHTML(`Rien dans les ${SOON_MIN} prochaines minutes`, "Enlève des filtres ou regarde la liste des films.");
@@ -477,7 +476,7 @@ function renderFilm(id) {
     for (const s of shows) { if (!byT.has(s[1])) byT.set(s[1], []); byT.get(s[1]).push(s); }
     const groups = [...byT.entries()].map(([tid, list]) => ({ tid, t: state.data.theaters[tid], list, next: list.find(s => s[2] >= now)?.[2] || "~" }));
     // Mes salles d'abord, puis les plus proches (si localisé), puis la prochaine séance.
-    groups.sort((a, b) => (state.favs.has(b.tid) - state.favs.has(a.tid)) || (state.pos ? distKm(a.t) - distKm(b.t) : 0)
+    groups.sort((a, b) => (state.favs.has(b.tid) - state.favs.has(a.tid)) || (state.near ? distKm(a.t) - distKm(b.t) || 0 : 0)
       || a.next.localeCompare(b.next) || a.t.arr - b.t.arr);
     body = `<ul class="cinemas">${groups.map(g => {
       let soonDone = false;
@@ -495,7 +494,7 @@ function renderFilm(id) {
       const fav = state.favs.has(g.tid);
       return `<li class="cine">
         <div class="cine-top">${arrBadge(g.t)}
-          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · la salle</a>` : `<span>${esc(g.t.address)}</span>`}${distLabel(g.t) ? `<small class="dist">${esc(distLabel(g.t))}</small>` : ""}</div>
+          <div class="cine-name"><h3>${esc(g.t.name)}</h3>${g.t.allocine ? `<a href="${esc(g.t.allocine)}" target="_blank" rel="noopener">${esc(g.t.address)} · la salle</a>` : `<span>${esc(g.t.address)}</span>`}<small class="dist">${distLabel(g.t) ? esc(distLabel(g.t)) + " · " : ""}<a href="${esc(mapsUrl(g.t))}" target="_blank" rel="noopener">Itinéraire ↗</a></small></div>
           <button class="star" data-star="${esc(g.tid)}" aria-pressed="${fav}" aria-label="${fav ? "Retirer de mes salles" : "Ajouter à mes salles"}">${fav ? "★" : "☆"}</button></div>
         <div class="times">${times}</div></li>`;
     }).join("")}</ul>`;
