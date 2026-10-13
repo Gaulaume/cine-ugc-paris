@@ -17,3 +17,13 @@ python -m pytest -q
 
 Liste des salles : `cineparis/cinemas.py` (source : ugc.fr/cinemas-acceptant-ui.html).
 Si une salle est mal associée, force son code avec `allocine="C0XXX"`.
+
+## Mise en ligne (une seule fois)
+Dans le dépôt GitHub : **Settings → Pages → Build and deployment → Source : « GitHub Actions »**.
+Ensuite, chaque exécution du workflow « Mise à jour des séances » publie le site sur
+`https://<compte>.github.io/cine-ugc-paris/`.
+
+## Versions des séances
+`VO` = film étranger en version originale (sous-titrée), `VF` = film doublé en français,
+`FR` = film français. Le filtre « VO » garde tout sauf les films doublés ; « VF » garde
+tout ce qui est en français.
