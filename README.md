@@ -27,3 +27,8 @@ Ensuite, chaque exécution du workflow « Mise à jour des séances » publie le
 `VO` = film étranger en version originale (sous-titrée), `VF` = film doublé en français,
 `FR` = film français. Le filtre « VO » garde tout sauf les films doublés ; « VF » garde
 tout ce qui est en français.
+
+## Réservation
+Chaque séance porte son lien de réservation sur le site du cinéma (ugc.fr, mk2.com,
+billetteries des indépendants), fourni par AlloCiné : toucher un horaire ouvre directement
+la réservation de ce film à cette heure.

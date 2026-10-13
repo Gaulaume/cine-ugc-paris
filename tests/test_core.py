@@ -52,6 +52,7 @@ def test_parse_seances():
     assert shows[1][3] == "VF"
     assert set(shows[1][4]) == {"IMAX", "3D"}
     assert len(shows) == 2
+    assert shows[0][5] == "https://example.test/ticket/1"
 
 
 def test_parse_cartes_salles():
@@ -74,3 +75,12 @@ def test_version_film_francais():
     parse_results(results, "C0102", movies, shows)
     assert [s[3] for s in shows] == ["FR", "FR", "FR"]
     assert shows[1][4] == ["Infinite"]
+
+
+def test_lien_reservation_sans_pistage():
+    raw = {"startsAt": "2026-10-14T09:00:00", "data": {"ticketing": [
+        {"provider": "relay", "urls": ["https://relay.mvtx.us/ticketing/x"]},
+        {"provider": "default", "urls": ["https://www.ugc.fr/reservationSeances.html?id=33&part=all&mtm_source=allocine&mtm_medium=affiliate"]}]}}
+    movies, shows = {}, []
+    parse_results([{"movie": {"internalId": 1, "title": "X"}, "showtimes": {"original": [raw]}}], "C0159", movies, shows)
+    assert shows[0][5] == "https://www.ugc.fr/reservationSeances.html?id=33&part=all"
