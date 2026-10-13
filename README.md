@@ -57,6 +57,15 @@ Partager, Ajouter au calendrier (fichier .ics avec rappel 45 min avant) et « En
 2e film » : les films qui commencent après la fin estimée (jusqu'à 75 min d'attente), dans la
 même salle puis le même arrondissement, en respectant les filtres et les films déjà vus.
 
+## Découverte et envies
+Bouton « 🎞 Découvrir » : les films à l'affiche défilent un par un (nouveautés d'abord) ;
+glisser à droite ou ♥ = envie de voir, à gauche ou ✕ = pas pour moi, « ✓ vu » = déjà vu.
+Filtre « ♥ Mes envies » et bouton « ♡ Envie de voir » sur la fiche du film.
+
+## Rentabilité de la carte
+Dans « Ma carte » : films marqués « Déjà vu » ce mois-ci × prix d'une place, comparé au prix
+de la carte (21,90 € et 12 € par défaut, modifiables). Tout reste sur le téléphone.
+
 ## Apparence
 Thème sombre « salle de cinéma » par défaut (bouton ◐ pour passer en clair), vue « Affiches »
 (grille de 3 affiches avec note et badges) ou « Liste », fiche film avec l'affiche floutée en

@@ -270,6 +270,47 @@ dialog.sheet .list-sep { margin: 20px 0 6px; }
 .pairs span, .pairs small { display: block; font-size: 13px; color: var(--muted); }
 .muted { color: var(--muted); font-size: 14px; }
 
+/* --- Envies --- */
+.chip.discover { background: var(--ticket); color: var(--ticket-ink); border-color: var(--ticket); font-weight: 600; }
+.wishmark { position: absolute; top: 4px; right: 6px; color: #FF5A6A; font-size: 18px; text-shadow: 0 1px 4px rgba(0,0,0,.6); z-index: 1; }
+.films:not(.grid) .pwrap .wishmark { top: -4px; right: -4px; font-size: 16px; }
+
+/* --- Découverte --- */
+dialog.disc { width: 100%; max-width: 640px; height: 100dvh; max-height: none; margin: 0 auto; border: 0; padding: 0; background: #07090F; color: #EEF1F7; overflow: hidden; }
+dialog.disc::backdrop { background: #000; }
+dialog.disc .card-top { gap: 10px; }
+#discCount { color: #8E97AD; font-size: 14px; }
+#discBody { padding: 4px 20px 20px; display: flex; flex-direction: column; height: calc(100% - 70px); }
+#discBody .empty h2 { color: #EEF1F7; }
+.disc-card { flex: 1; min-height: 0; display: flex; flex-direction: column; touch-action: pan-y; user-select: none; --like: 0; --nope: 0; }
+.disc-poster { position: relative; flex: 1; min-height: 0; border-radius: 16px; background: #1A2030 center/cover no-repeat; box-shadow: 0 16px 40px rgba(0,0,0,.6);
+  display: grid; place-items: center; font: 700 72px "Barlow Condensed", sans-serif; color: #8E97AD; }
+.disc-poster .badge { position: absolute; top: 12px; left: 12px; }
+.disc-poster .rate { position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,.75); color: #fff; border-radius: 6px; padding: 3px 8px; font: 600 16px "Barlow", sans-serif; }
+.stamp { position: absolute; top: 28px; padding: 4px 12px; border: 4px solid; border-radius: 8px; font: 700 34px "Barlow Condensed", sans-serif; letter-spacing: .05em; transform: rotate(-12deg); }
+.stamp.like { left: 22px; color: #4DC596; opacity: var(--like); }
+.stamp.nope { right: 22px; color: #FF5A6A; opacity: var(--nope); transform: rotate(12deg); }
+.disc-card h3 { margin: 14px 0 2px; font: 700 28px/1.05 "Barlow Condensed", sans-serif; }
+.disc-card p { margin: 4px 0 0; color: #8E97AD; font-size: 14px; }
+.disc-actions { display: flex; justify-content: center; align-items: center; gap: 14px; padding-top: 16px; }
+.disc-actions button { width: 64px; height: 64px; border-radius: 50%; border: 2px solid #FF5A6A; background: none; color: #FF5A6A; font-size: 26px; }
+.disc-actions button.like { border-color: #4DC596; color: #4DC596; font-size: 28px; }
+.disc-actions button.small { width: auto; height: 40px; padding: 0 14px; border-radius: 999px; border-color: #3A4256; color: #C9CFDC; font-size: 14px; font-weight: 600; }
+
+/* --- Rentabilité --- */
+.stats { margin-top: 26px; padding-top: 18px; border-top: 1px solid #E1E6EF; }
+.stats h3 { margin: 0; font: 600 13px "Barlow", sans-serif; color: #5B6680; text-transform: uppercase; letter-spacing: .05em; }
+.stat-big { font: 700 36px/1.1 "Barlow Condensed", sans-serif; margin-top: 4px; }
+.stats p { margin: 6px 0; }
+.meter { height: 10px; border-radius: 99px; background: #E8EDF4; overflow: hidden; margin: 10px 0 6px; }
+.meter i { display: block; height: 100%; background: linear-gradient(90deg, #F2C230, #4DC596); border-radius: 99px; }
+.stats .verdict { font-weight: 600; color: #16203A; font-size: 15px; }
+.stats .seenlist { font-size: 13px; }
+.stats .hint { font-size: 12px; }
+.stats details { margin-top: 8px; font-size: 14px; color: #5B6680; }
+.stats details label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
+.stats details input { width: 90px; border: 1.5px solid #CDD5E2; border-radius: 8px; padding: 6px 8px; text-align: right; }
+
 /* --- Ma carte --- */
 .iconbtn { margin-left: auto; border: 0; background: none; color: #fff; font-size: 20px; padding: 4px 8px; line-height: 1; }
 .cardbtn { border: 1.5px solid rgba(255,255,255,.4); background: none; color: #fff;
@@ -319,11 +360,13 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
   </div>
 
   <div class="filters" role="group" aria-label="Filtres">
+    <button class="chip discover" id="discoverBtn">🎞 Découvrir</button>
     <button class="chip" id="layoutBtn" aria-label="Changer d'affichage"></button>
     <label class="chip"><select id="sort" aria-label="Trier les films">
       <option value="pop">Trier : les plus diffusés</option><option value="note">Trier : mieux notés</option>
     </select></label>
     <button class="chip" data-f="nouv" aria-pressed="false">✦ Nouveautés</button>
+    <button class="chip" data-f="envies" aria-pressed="false">♥ Mes envies</button>
     <button class="chip" data-f="vo" aria-pressed="false">VO</button>
     <button class="chip" data-f="vf" aria-pressed="false">VF</button>
     <button class="chip" data-f="fav" aria-pressed="false">★ Mes salles</button>
@@ -344,6 +387,12 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
   <dialog class="sheet" id="sheet" aria-label="Séance">
     <div class="card-top"><h2 id="sheetTitle"></h2><button class="x" id="sheetClose" aria-label="Fermer">✕</button></div>
     <div id="sheetBody"></div>
+  </dialog>
+
+  <!-- Découverte : on fait défiler les films de la semaine -->
+  <dialog class="disc" id="disc" aria-label="Découvrir les films">
+    <div class="card-top"><h2>Découvrir</h2><span id="discCount"></span><button class="x" id="discClose" aria-label="Fermer">✕</button></div>
+    <div id="discBody"></div>
   </dialog>
 
   <!-- Ma carte UGC : capture gardée uniquement sur ce téléphone (IndexedDB), jamais envoyée. -->
@@ -368,9 +417,23 @@ const state = {
   // VO/VF mémorisés ; VO par défaut (cache seulement les films doublés).
   data: null, day: null, q: "", nouv: false, vo: store.get("vo", true), vf: store.get("vf", false), fav: false,
   layout: store.get("layout", "grid"), sort: store.get("sort", "pop"), showPast: false, endBy: "",
-  seen: new Set(store.get("seen", [])), showSeen: false,
+  // Films vus : {id: "AAAA-MM-JJ" | null} (null = vu avant qu'on note la date).
+  seenAt: store.get("seenAt", null) ?? Object.fromEntries(store.get("seen", []).map(id => [id, null])),
+  showSeen: false, envies: false,
+  wish: new Set(store.get("wish", [])), nope: new Set(store.get("nope", [])),
   group: "", arr: "", view: store.get("view", "salle"), favs: new Set(store.get("favs", [])),
 };
+
+state.seen = new Set(Object.keys(state.seenAt));
+function toggleSeen(id, on = !state.seen.has(id)) {
+  if (on) { state.seenAt[id] = parisNow().slice(0, 10); state.seen.add(id); state.wish.delete(id); store.set("wish", [...state.wish]); }
+  else { delete state.seenAt[id]; state.seen.delete(id); }
+  store.set("seenAt", state.seenAt);
+}
+function toggleWish(id, on = !state.wish.has(id)) {
+  on ? state.wish.add(id) : state.wish.delete(id);
+  store.set("wish", [...state.wish]);
+}
 
 const DOW = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
 const parisNow = () => {
@@ -484,6 +547,7 @@ function renderList() {
     if (!m) continue;
     if (q && !norm(m.title).includes(q) && !norm(m.original).includes(q)) continue;
     if (state.nouv && !isNew(m)) continue;
+    if (state.envies && !state.wish.has(id)) continue;
     // Films déjà vus masqués (sauf si on les cherche ou qu'on demande à les voir).
     if (state.seen.has(id) && !q && !state.showSeen) { if (filtered(list).length) hiddenSeen++; continue; }
     const shows = filtered(list);
@@ -521,12 +585,13 @@ function renderList() {
   }
   const rowHTML = r => {
     const seen = state.seen.has(r.id) ? `<span class="badge seen">Déjà vu</span>` : "";
+    const heart = state.wish.has(r.id) ? `<span class="wishmark" aria-label="Envie de voir">♥</span>` : "";
     const info = r.n ? `${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}` : "Pas de séance ce jour-là";
     const next = r.later ? `<b>${esc(fmtDay(r.later[2].slice(0, 10)))}</b><small>${r.later[2].slice(11)}</small>`
       : r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`;
     return `
     <li><button class="film-row${state.seen.has(r.id) ? " is-seen" : ""}" data-film="${r.id}"${r.later ? ` data-goday="${r.later[2].slice(0, 10)}"` : ""}>
-      <div class="pwrap">${posterHTML(r.m)}${r.m.rating ? `<span class="rate">★ ${String(r.m.rating).replace(".", ",")}</span>` : ""}</div>
+      <div class="pwrap">${posterHTML(r.m)}${heart}${r.m.rating ? `<span class="rate">★ ${String(r.m.rating).replace(".", ",")}</span>` : ""}</div>
       <div>${badge(r.m)}${seen}<h2>${esc(r.m.title)}</h2><p>${info}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}${rating(r.m)}</p></div>
       <div class="next">${next}</div>
     </button></li>`;
@@ -602,6 +667,7 @@ function renderFilm(id) {
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
   $("#main").innerHTML = `
     <div class="film-head${m.poster ? " hero" : ""}"${m.poster ? ` style="--bg:url('${esc(m.poster)}')"` : ""}>${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a>
+      <button class="seenbtn" data-wish-film="${esc(id)}" aria-pressed="${state.wish.has(id)}">${state.wish.has(id) ? "♥ Envie de voir" : "♡ Envie de voir"}</button>
       <button class="seenbtn" data-seen-film="${esc(id)}" aria-pressed="${state.seen.has(id)}">${state.seen.has(id) ? "✓ Déjà vu" : "Marquer déjà vu"}</button></div></div></div>
     <div class="view-toggle" role="group" aria-label="Affichage">
       <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
@@ -664,11 +730,12 @@ $("#main").addEventListener("click", e => {
   }
   const more = e.target.closest("[data-more]");
   if (more) { openSheet(state.data.showtimes[more.dataset.more]); return; }
+  const wishFilm = e.target.closest("[data-wish-film]");
+  if (wishFilm) { toggleWish(wishFilm.dataset.wishFilm); route(); return; }
   const seenFilm = e.target.closest("[data-seen-film]");
   if (seenFilm) {
     const id = seenFilm.dataset.seenFilm;
-    state.seen.has(id) ? state.seen.delete(id) : state.seen.add(id);
-    store.set("seen", [...state.seen]); route(); return;
+    toggleSeen(id); route(); return;
   }
   const seenList = e.target.closest("[data-seen-list]");
   if (seenList) { state.showSeen = seenList.dataset.seenList === "1"; route(); return; }
@@ -762,6 +829,82 @@ $("#sheet").addEventListener("click", async e => {
   }
 });
 
+// --- Découverte : glisser à droite = envie, à gauche = pas pour moi ---
+let deck = [], deckPos = 0, deckLiked = 0;
+function buildDeck() {
+  const rows = [];
+  for (const [id, list] of state.byMovie) {
+    const m = state.data.movies[id];
+    if (!m || state.seen.has(id) || state.wish.has(id) || state.nope.has(id)) continue;
+    const shows = filtered(list, true);
+    if (shows.length) rows.push({ id, m, n: shows.length, th: new Set(shows.map(s => s[1])).size, next: shows[0] });
+  }
+  return rows.sort((a, b) => (isNew(b.m) - isNew(a.m)) || b.th - a.th || b.n - a.n);
+}
+function renderDisc() {
+  const r = deck[deckPos];
+  $("#discCount").textContent = r ? `${deckPos + 1} / ${deck.length}` : "";
+  if (!r) {
+    $("#discBody").innerHTML = `<div class="empty"><h2>C'est tout pour cette semaine 🎬</h2>
+      <p>${deckLiked ? `${deckLiked} film${deckLiked > 1 ? "s" : ""} ajouté${deckLiked > 1 ? "s" : ""} à tes envies.` : "Aucun nouveau film à découvrir."}</p>
+      <div class="card-actions" style="justify-content:center"><button data-disc="envies">♥ Voir mes envies</button>
+      ${state.nope.size ? `<button class="ghost" data-disc="reset">Revoir les films écartés</button>` : ""}</div></div>`;
+    return;
+  }
+  const m = r.m, meta = [m.genres?.slice(0, 2).join(", "), m.runtime, m.directors?.length && "de " + m.directors[0]].filter(Boolean).join(" · ");
+  $("#discBody").innerHTML = `
+    <div class="disc-card" id="discCard">
+      <div class="disc-poster"${m.poster ? ` style="background-image:url('${esc(m.poster)}')"` : ""}>${m.poster ? "" : esc(m.title[0])}
+        ${badge(m)}${m.rating ? `<span class="rate">★ ${String(m.rating).replace(".", ",")}</span>` : ""}
+        <span class="stamp like">ENVIE</span><span class="stamp nope">BOF</span></div>
+      <h3>${esc(m.title)}</h3><p>${esc(meta)}</p>
+      <p>${r.th} salle${r.th > 1 ? "s" : ""} · prochaine séance ${esc(fmtDay(r.next[2].slice(0, 10)))} à ${r.next[2].slice(11)}</p>
+    </div>
+    <div class="disc-actions">
+      <button data-disc="nope" aria-label="Pas pour moi">✕</button>
+      <button data-disc="seen" class="small" aria-label="Déjà vu">✓ vu</button>
+      <button data-disc="info" class="small" aria-label="Voir les séances">séances</button>
+      <button data-disc="like" class="like" aria-label="Envie de voir">♥</button>
+    </div>`;
+  swipeable($("#discCard"));
+}
+function decide(kind) {
+  const r = deck[deckPos]; if (!r) return;
+  if (kind === "like") { toggleWish(r.id, true); deckLiked++; }
+  if (kind === "nope") { state.nope.add(r.id); store.set("nope", [...state.nope]); }
+  if (kind === "seen") toggleSeen(r.id, true);
+  const card = $("#discCard");
+  if (card) { card.style.transition = "transform .25s ease, opacity .25s"; card.style.transform = `translateX(${kind === "nope" ? -120 : 120}%) rotate(${kind === "nope" ? -12 : 12}deg)`; card.style.opacity = 0; }
+  setTimeout(() => { deckPos++; renderDisc(); }, 220);
+}
+function swipeable(card) {
+  let x0 = null, dx = 0;
+  card.addEventListener("pointerdown", e => { x0 = e.clientX; dx = 0; card.setPointerCapture(e.pointerId); card.style.transition = "none"; });
+  card.addEventListener("pointermove", e => {
+    if (x0 == null) return;
+    dx = e.clientX - x0;
+    card.style.transform = `translateX(${dx}px) rotate(${dx / 18}deg)`;
+    card.style.setProperty("--like", Math.max(0, Math.min(1, dx / 90)));
+    card.style.setProperty("--nope", Math.max(0, Math.min(1, -dx / 90)));
+  });
+  const end = () => {
+    if (x0 == null) return; x0 = null;
+    if (Math.abs(dx) > 90) return decide(dx > 0 ? "like" : "nope");
+    card.style.transition = "transform .2s"; card.style.transform = ""; card.style.setProperty("--like", 0); card.style.setProperty("--nope", 0);
+  };
+  card.addEventListener("pointerup", end); card.addEventListener("pointercancel", end);
+}
+$("#discoverBtn").onclick = () => { deck = buildDeck(); deckPos = 0; deckLiked = 0; renderDisc(); $("#disc").showModal(); };
+$("#discClose").onclick = () => { $("#disc").close(); route(); };
+$("#discBody").addEventListener("click", e => {
+  const b = e.target.closest("[data-disc]"); if (!b) return;
+  const k = b.dataset.disc;
+  if (k === "info") { const r = deck[deckPos]; $("#disc").close(); location.hash = `#/film/${r.id}`; return; }
+  if (k === "envies") { state.envies = true; syncChips(); $("#disc").close(); location.hash ? (location.hash = "") : route(); return; }
+  if (k === "reset") { state.nope.clear(); store.set("nope", []); deck = buildDeck(); deckPos = 0; renderDisc(); return; }
+  decide(k);
+});
+
 // --- Ma carte UGC (stockée uniquement sur l'appareil, dans IndexedDB) ---
 const cardDB = {
   open: () => new Promise((ok, ko) => {
@@ -795,6 +938,30 @@ async function renderCard() {
     : `<p>Ajoute une capture d'écran de ta carte (depuis l'appli UGC ou une photo de la carte) pour l'avoir sous la main.</p>
        <p><b>Elle reste uniquement sur ce téléphone</b> : elle n'est envoyée nulle part et n'est pas publiée sur le site.</p>
        <div class="card-actions"><button id="cardPick">Ajouter ma carte</button></div>${numHTML}`;
+  $("#cardBody").insertAdjacentHTML("beforeend", statsHTML());
+}
+
+// Rentabilité : films marqués « Déjà vu » ce mois-ci × prix d'une place, comparé au prix de la carte.
+function statsHTML() {
+  const month = parisNow().slice(0, 7), price = store.get("cardPrice", 21.9), ticket = store.get("ticketPrice", 12);
+  const ids = Object.entries(state.seenAt).filter(([, d]) => d && d.startsWith(month)).map(([id]) => id);
+  const n = ids.length, value = n * ticket, ratio = price ? value / price : 0, need = Math.max(0, Math.ceil(price / ticket) - n);
+  const eur = v => v.toFixed(2).replace(".", ",").replace(",00", "") + " €";
+  const monthName = new Date(month + "-15T12:00:00").toLocaleDateString("fr-FR", { month: "long" });
+  const titles = ids.map(id => state.data?.movies[id]?.title).filter(Boolean);
+  return `<section class="stats">
+    <h3>Ma carte en ${esc(monthName)}</h3>
+    <div class="stat-big">${n} film${n > 1 ? "s" : ""} vu${n > 1 ? "s" : ""}</div>
+    <p>${n} × ${eur(ticket)} = <b>${eur(value)}</b> de places, pour une carte à ${eur(price)}/mois</p>
+    <div class="meter" role="img" aria-label="Rentabilité ${Math.round(ratio * 100)} %"><i style="width:${Math.min(100, ratio * 100)}%"></i></div>
+    <p class="verdict">${ratio >= 1 ? `🎉 Carte rentabilisée ${ratio.toFixed(1).replace(".", ",")}× (${eur(value - price)} d'économie)`
+      : `Encore ${need} film${need > 1 ? "s" : ""} pour la rentabiliser`}</p>
+    ${titles.length ? `<p class="seenlist">${titles.map(esc).join(" · ")}</p>` : ""}
+    <p class="hint">On compte les films que tu marques « Déjà vu » (bouton sur la fiche du film).</p>
+    <details><summary>Ajuster les prix</summary>
+      <label>Carte (€/mois) <input id="cardPrice" inputmode="decimal" value="${String(price).replace(".", ",")}"></label>
+      <label>Une place (€) <input id="ticketPrice" inputmode="decimal" value="${String(ticket).replace(".", ",")}"></label>
+    </details></section>`;
 }
 async function openCard() {
   await renderCard();
@@ -814,6 +981,13 @@ $("#cardBody").addEventListener("click", async e => {
 });
 $("#cardBody").addEventListener("change", e => {
   if (e.target.id === "cardNum") cardDB.set("number", e.target.value.trim()).catch(() => {});
+  if (e.target.id === "cardPrice" || e.target.id === "ticketPrice") {
+    const v = parseFloat(e.target.value.replace(",", "."));
+    if (v > 0) {
+      store.set(e.target.id, v);
+      setTimeout(() => { $(".stats").outerHTML = statsHTML(); $(".stats details").open = true; });  // après la sortie du champ
+    }
+  }
 });
 $("#cardFile").onchange = async e => {
   const f = e.target.files[0]; e.target.value = "";
