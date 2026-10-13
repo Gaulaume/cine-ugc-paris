@@ -46,3 +46,8 @@ dans la liste ; les séances en avant-première portent la mention « Avant-prem
   salles géocodées une fois (service d'adresses de l'IGN) et gardées dans `data/geo.json`.
 - VO par défaut (cache seulement les films doublés), choix mémorisé ; séances passées masquées
   (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs) ; note des spectateurs.
+
+## Ma carte
+Bouton « 🎟 Ma carte » : on choisit une capture de sa carte UGC Illimité (et, si on veut, son
+numéro). Elle est gardée **uniquement sur le téléphone** (IndexedDB du navigateur) : rien n'est
+envoyé ni publié. Écran maintenu allumé pendant l'affichage. Raccourci : `…/#carte`.
