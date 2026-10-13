@@ -7,6 +7,10 @@
 <meta name="description" content="Toutes les séances des cinémas parisiens qui acceptent la carte UGC Illimité.">
 <meta name="theme-color" content="#1B2A4E">
 <link rel="manifest" href="manifest.webmanifest">
+<script>  // thème sombre par défaut, avant l'affichage pour éviter un flash clair
+  try { document.documentElement.dataset.theme = JSON.parse(localStorage.getItem("theme")) || "dark"; }
+  catch { document.documentElement.dataset.theme = "dark"; }
+</script>
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -38,12 +42,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --enamel: #0F1A33; --page: #0B1326; --surface: #15203A; --ink: #E9EEF7;
-    --muted: #93A0BA; --line: #26324D; --past: #4A5672; --mk2: #8E9AB3; --ugc: #FF6170; --indep: #4DC596;
+    --muted: #93A0BA; --line: #26324D; --past: #4A5672; --mk2: #8E9AB3; --ugc: #FF6170; --indep: #4DC596; --focus: #8AB0FF;
   }
 }
 :root[data-theme="dark"] {
-  --enamel: #0F1A33; --page: #0B1326; --surface: #15203A; --ink: #E9EEF7;
-  --muted: #93A0BA; --line: #26324D; --past: #4A5672; --mk2: #8E9AB3; --ugc: #FF6170; --indep: #4DC596;
+  --enamel: #0B0F1A; --page: #07090F; --surface: #131826; --ink: #EEF1F7;
+  --muted: #8E97AD; --line: #232A3B; --past: #4A5268; --mk2: #9AA5BE; --ugc: #FF5A6A; --indep: #4DC596; --focus: #8AB0FF;
 }
 
 * { box-sizing: border-box; }
@@ -116,7 +120,7 @@ button { cursor: pointer; }
 /* --- Liste des films --- */
 .films { list-style: none; margin: 0; padding: 8px 16px 32px; display: grid; gap: 2px; }
 .film-row {
-  display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center;
+  display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center;
   width: 100%; border: 0; background: var(--surface); text-align: left; padding: 10px 12px 10px 10px;
 }
 .films li:first-child .film-row { border-radius: 12px 12px 0 0; }
@@ -125,7 +129,7 @@ button { cursor: pointer; }
 .list-sep { margin: 14px 16px 0; font: 600 13px "Barlow", sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .list-sep + .films { padding-top: 6px; }
 .poster {
-  width: 52px; aspect-ratio: 2/3; border-radius: 4px; background: var(--line) center/cover no-repeat;
+  width: 64px; aspect-ratio: 2/3; border-radius: 4px; background: var(--line) center/cover no-repeat;
   display: grid; place-items: center; color: var(--muted); font: 600 20px "Barlow Condensed";
 }
 .film-row h2 { margin: 0; font: 600 20px/1.1 "Barlow Condensed", sans-serif; }
@@ -140,8 +144,8 @@ button { cursor: pointer; }
 .next small { font-size: 12px; color: var(--muted); }
 
 /* --- Fiche film --- */
-.film-head { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 16px; align-items: end; }
-.film-head .poster { width: 96px; border-radius: 6px; font-size: 32px; }
+.film-head { display: grid; grid-template-columns: 120px 1fr; gap: 14px; padding: 16px; align-items: end; }
+.film-head .poster { width: 120px; border-radius: 8px; font-size: 32px; }
 .film-head h2 { margin: 0; font: 700 30px/1.02 "Barlow Condensed", sans-serif; }
 .film-head p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
 .film-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; }
@@ -150,6 +154,32 @@ button { cursor: pointer; }
 .seenbtn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
 .badge.seen { background: var(--line); color: var(--ink); margin-right: 4px; }
 .film-row.is-seen { opacity: .6; }
+
+/* Vue affiches : 3 colonnes */
+.films.grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 10px; }
+.films.grid li .film-row { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 0; background: none; border-radius: 0; position: relative; }
+.films.grid .poster { width: 100%; border-radius: 8px; font-size: 34px; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.films.grid .film-row > div:nth-child(2) { min-width: 0; }
+.films.grid h2 { font-size: 16px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.films.grid p { display: none; }
+.films.grid .badge { position: absolute; top: 6px; left: 6px; font-size: 10px; margin: 0; z-index: 1; }
+.films.grid .badge.seen { display: none; }  /* l'affiche grisée suffit */
+.pwrap { position: relative; }
+.films.grid .next { text-align: left; display: flex; gap: 5px; align-items: baseline; }
+.films.grid .next b { font-size: 16px; }
+.films.grid .next small { font-size: 11px; }
+.films.grid .rate { position: absolute; bottom: 6px; right: 6px; background: rgba(0,0,0,.72); color: #fff; border-radius: 4px; padding: 1px 5px; font: 600 12px "Barlow", sans-serif; }
+.films:not(.grid) .rate { display: none; }
+
+/* Fiche film : affiche floutée en fond */
+.film-head.hero { position: relative; overflow: hidden; color: #fff; padding-top: 28px; }
+.film-head.hero::before { content: ""; position: absolute; inset: -30px; background: var(--bg) center/cover; filter: blur(26px) brightness(.42) saturate(1.2); z-index: 0; }
+.film-head.hero > * { position: relative; z-index: 1; }
+.film-head.hero p { color: rgba(255,255,255,.78); }
+.film-head.hero .ext { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.film-head.hero .seenbtn { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.35); color: #fff; }
+.film-head.hero .seenbtn[aria-pressed="true"] { background: #fff; color: #111; }
+.film-head.hero .poster { box-shadow: 0 10px 30px rgba(0,0,0,.5); }
 .view-toggle { display: flex; margin: 0 16px; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; }
 .view-toggle button { flex: 1; border: 0; background: var(--surface); padding: 8px; font-size: 14px; font-weight: 600; }
 .view-toggle button[aria-pressed="true"] { background: var(--ink); color: var(--page); }
@@ -218,8 +248,8 @@ a.time { color: inherit; text-decoration: none; }
 .install .x { background: none; color: var(--muted); padding: 6px; }
 
 /* --- Ma carte --- */
-.cardbtn {
-  margin-left: auto; border: 1.5px solid rgba(255,255,255,.4); background: none; color: #fff;
+.iconbtn { margin-left: auto; border: 0; background: none; color: #fff; font-size: 20px; padding: 4px 8px; line-height: 1; }
+.cardbtn { border: 1.5px solid rgba(255,255,255,.4); background: none; color: #fff;
   border-radius: 999px; padding: 5px 11px; font: 600 14px "Barlow", sans-serif; white-space: nowrap;
 }
 dialog.card {
@@ -250,7 +280,7 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
 <body>
 <div class="app" id="app">
   <header class="plate">
-    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Ciné</span><button class="cardbtn" id="cardBtn" aria-haspopup="dialog">🎟 Ma carte</button></h1>
+    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Ciné</span><button class="iconbtn" id="themeBtn" aria-label="Changer de thème (clair / sombre)">◐</button><button class="cardbtn" id="cardBtn" aria-haspopup="dialog">🎟 Ma carte</button></h1>
     <label class="search" id="searchBox">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Chercher un film" autocomplete="off" enterkeyhint="search" aria-label="Chercher un film">
@@ -266,6 +296,7 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
   </div>
 
   <div class="filters" role="group" aria-label="Filtres">
+    <button class="chip" id="layoutBtn" aria-label="Changer d'affichage"></button>
     <label class="chip"><select id="sort" aria-label="Trier les films">
       <option value="pop">Trier : les plus diffusés</option><option value="note">Trier : mieux notés</option>
     </select></label>
@@ -307,7 +338,7 @@ const store = {
 const state = {
   // VO/VF mémorisés ; VO par défaut (cache seulement les films doublés).
   data: null, day: null, q: "", nouv: false, vo: store.get("vo", true), vf: store.get("vf", false), fav: false,
-  sort: store.get("sort", "pop"), showPast: false, endBy: "",
+  layout: store.get("layout", "grid"), sort: store.get("sort", "pop"), showPast: false, endBy: "",
   seen: new Set(store.get("seen", [])), showSeen: false,
   group: "", arr: "", view: store.get("view", "salle"), favs: new Set(store.get("favs", [])),
 };
@@ -465,12 +496,12 @@ function renderList() {
       : r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`;
     return `
     <li><button class="film-row${state.seen.has(r.id) ? " is-seen" : ""}" data-film="${r.id}"${r.later ? ` data-goday="${r.later[2].slice(0, 10)}"` : ""}>
-      ${posterHTML(r.m)}
+      <div class="pwrap">${posterHTML(r.m)}${r.m.rating ? `<span class="rate">★ ${String(r.m.rating).replace(".", ",")}</span>` : ""}</div>
       <div>${badge(r.m)}${seen}<h2>${esc(r.m.title)}</h2><p>${info}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}${rating(r.m)}</p></div>
       <div class="next">${next}</div>
     </button></li>`;
   };
-  const list = rs => `<ul class="films">${rs.map(rowHTML).join("")}</ul>`;
+  const list = rs => `<ul class="films${state.layout === "grid" ? " grid" : ""}">${rs.map(rowHTML).join("")}</ul>`;
   const recent = rows.filter(r => isRecent(r.m)), older = rows.filter(r => !isRecent(r.m));
   $("#main").innerHTML = byNote && recent.length && older.length
     ? `<h3 class="list-sep">Sorties récentes</h3>${list(recent)}<h3 class="list-sep">Sortis il y a plus de 3 mois</h3>${list(older)}${seenLink}`
@@ -539,7 +570,7 @@ function renderFilm(id) {
   const nT = new Set(shows.map(s => s[1])).size;
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
   $("#main").innerHTML = `
-    <div class="film-head">${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a>
+    <div class="film-head${m.poster ? " hero" : ""}"${m.poster ? ` style="--bg:url('${esc(m.poster)}')"` : ""}>${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a>
       <button class="seenbtn" data-seen-film="${esc(id)}" aria-pressed="${state.seen.has(id)}">${state.seen.has(id) ? "✓ Déjà vu" : "Marquer déjà vu"}</button></div></div></div>
     <div class="view-toggle" role="group" aria-label="Affichage">
       <button data-view="salle" aria-pressed="${state.view === "salle"}">Par salle</button>
@@ -585,6 +616,13 @@ document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
 });
 $("#group").onchange = e => { state.group = e.target.value; route(); };
 $("#endBy").onchange = e => { state.endBy = e.target.value; route(); };
+const syncLayout = () => { $("#layoutBtn").textContent = state.layout === "grid" ? "☰ Liste" : "▦ Affiches"; };
+$("#layoutBtn").onclick = () => { state.layout = state.layout === "grid" ? "list" : "grid"; store.set("layout", state.layout); syncLayout(); route(); };
+$("#themeBtn").onclick = () => {
+  const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = t; store.set("theme", t);
+};
+syncLayout();
 $("#sort").onchange = e => { state.sort = e.target.value; store.set("sort", state.sort); route(); };
 $("#arr").onchange = e => { state.arr = e.target.value; route(); };
 $("#main").addEventListener("click", e => {
