@@ -40,7 +40,8 @@ dans la liste ; les séances en avant-première portent la mention « Avant-prem
 
 ## Confort
 - Tri « les plus diffusés » ou « mieux notés » (note des spectateurs AlloCiné ; les films
-  avec moins de 20 avis passent après), choix mémorisé.
+  avec moins de 20 avis passent après), choix mémorisé. En « mieux notés », les sorties des
+  3 derniers mois passent d'abord, puis les films plus anciens et les reprises.
 - VO par défaut (cache seulement les films doublés), choix mémorisé ; séances passées masquées
   (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs).
 - Lien « Itinéraire » Google Maps sur chaque salle.
