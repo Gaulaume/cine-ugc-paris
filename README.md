@@ -32,3 +32,8 @@ tout ce qui est en français.
 Chaque séance porte son lien de réservation sur le site du cinéma (ugc.fr, mk2.com,
 billetteries des indépendants), fourni par AlloCiné : toucher un horaire ouvre directement
 la réservation de ce film à cette heure.
+
+## Nouveautés
+Le filtre « ✦ Nouveautés » garde les films sortis depuis 7 jours et ceux pas encore sortis
+(avant-premières), du plus récent au plus ancien. Badge « Nouveau » / « Sortie mer. 21 oct. »
+dans la liste ; les séances en avant-première portent la mention « Avant-première ».

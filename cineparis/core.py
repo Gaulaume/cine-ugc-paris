@@ -106,7 +106,18 @@ def _formats(raw: dict) -> list[str]:
         for v in raw.get(key) or []:
             if v in labels and labels[v] not in out:
                 out.append(labels[v])
+    if raw.get("isPreview"):
+        out.insert(0, "Avant-première")
     return out
+
+
+def _release(movie: dict) -> str | None:
+    """Date de sortie en salle en France (AAAA-MM-JJ), si AlloCiné la connaît au jour près."""
+    for r in movie.get("releases") or []:
+        d = (r or {}).get("releaseDate") or {}
+        if d.get("precision") == "day" and d.get("date"):
+            return d["date"][:10]
+    return None
 
 
 def _booking(raw: dict) -> str | None:
@@ -146,6 +157,7 @@ def parse_results(results: list[dict], theater_key: str, movies: dict, showtimes
                 "genres": [g.get("translate") for g in movie.get("genres") or [] if g.get("translate")],
                 "directors": [d for d in directors if d][:2],
                 "rating": round(float(rating), 1) if isinstance(rating, (int, float)) else None,
+                "release": _release(movie),
             }
         for group in (item.get("showtimes") or {}).values():
             for raw in group or []:

@@ -84,3 +84,14 @@ def test_lien_reservation_sans_pistage():
     movies, shows = {}, []
     parse_results([{"movie": {"internalId": 1, "title": "X"}, "showtimes": {"original": [raw]}}], "C0159", movies, shows)
     assert shows[0][5] == "https://www.ugc.fr/reservationSeances.html?id=33&part=all"
+
+
+def test_sortie_et_avant_premiere():
+    film = {"internalId": 9, "title": "Street Fighter", "languages": ["ENGLISH"],
+            "releases": [{"name": "Released", "releaseDate": {"date": "2026-10-14", "precision": "day"}}]}
+    raw = {"startsAt": "2026-10-13T20:00:00", "diffusionVersion": "ORIGINAL", "isPreview": True,
+           "experience": ["PLF"]}
+    movies, shows = {}, []
+    parse_results([{"movie": film, "showtimes": {"original_st": [raw]}}], "C0159", movies, shows)
+    assert movies["9"]["release"] == "2026-10-14"
+    assert shows[0][4] == ["Avant-première", "Grand écran"]
