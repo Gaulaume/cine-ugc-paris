@@ -68,8 +68,9 @@ def test_version_film_francais():
     results = [{"movie": film, "showtimes": {
         "original": [{"startsAt": "2026-10-13T10:00:00", "diffusionVersion": "ORIGINAL"}],
         "multiple": [{"startsAt": "2026-10-13T12:00:00", "diffusionVersion": "LOCAL",
-                      "experience": ["INFINITE"]}]}}]
+                      "experience": ["INFINITE"]},
+                     {"startsAt": "2026-10-13T14:00:00", "diffusionVersion": "DUBBED"}]}}]
     movies, shows = {}, []
     parse_results(results, "C0102", movies, shows)
-    assert [s[3] for s in shows] == ["FR", "FR"]
+    assert [s[3] for s in shows] == ["FR", "FR", "FR"]
     assert shows[1][4] == ["Infinite"]

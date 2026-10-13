@@ -86,13 +86,13 @@ def _version(raw: dict, movie: dict) -> str:
 
     AlloCiné : diffusionVersion vaut ORIGINAL, DUBBED (doublé) ou LOCAL (film français).
     """
-    dv = raw.get("diffusionVersion")
-    if dv == "DUBBED":
-        return "VF"
+    # La langue du film d'abord : AlloCiné marque parfois « DUBBED » des films français.
     langs = movie.get("languages") or []
-    if dv == "LOCAL" or "Localization.Language.French" in (raw.get("tags") or []) \
-            or (langs and langs[0] == "FRENCH"):
+    dv = raw.get("diffusionVersion")
+    if langs[:1] == ["FRENCH"] or (not langs and dv == "LOCAL"):
         return "FR"
+    if dv in ("DUBBED", "LOCAL") or "Localization.Language.French" in (raw.get("tags") or []):
+        return "VF"
     return "VO"
 
 
