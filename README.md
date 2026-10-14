@@ -72,6 +72,11 @@ Filtre « ♥ Mes envies » et bouton « ♡ Envie de voir » sur la fiche du fi
 ## Films vus
 Dans « Ma carte » : nombre et titres des films marqués « Déjà vu » ce mois-ci (sur le téléphone).
 
+## Logo
+Ticket de cinéma au style impression riso / comic (points de trame, couleurs légèrement
+décalées), sur fond papier. Source : `scripts/logo-source.png` ; les icônes de `docs/icons/`
+se régénèrent avec `python scripts/make_icons.py docs/icons` (nécessite Pillow).
+
 ## Apparence
 Thème sombre « salle de cinéma » par défaut (bouton ◐ pour passer en clair), vue « Affiches »
 (grille de 3 affiches avec note et badges) ou « Liste », fiche film avec l'affiche floutée en
