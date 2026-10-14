@@ -171,7 +171,8 @@ button { cursor: pointer; }
 .film-head p { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
 .film-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-top: 8px; }
 .film-head .ext { font-size: 14px; font-weight: 600; color: var(--focus); text-decoration: none; }
-.film-head .copytitle { border: 0; background: none; padding: 0; cursor: pointer; }
+.copyicon { border: 0; background: none; color: inherit; opacity: .7; padding: 4px 6px; margin-left: 4px; vertical-align: 3px; line-height: 0; cursor: pointer; }
+.copyicon:active { opacity: 1; }
 .seenbtn { border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 13px; font-weight: 600; }
 .seenbtn[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
 .badge.seen { background: var(--line); color: var(--ink); margin-right: 4px; }
@@ -536,6 +537,9 @@ const endTime = s => {
 // - Android : lien « intent » vers l'appli (com.letterboxd.letterboxd), repli sur le site sinon.
 // - iPhone : lien universel letterboxd.com/search/<titre>/ (non exclu de l'appli par Letterboxd),
 //   ouvert sans nouvel onglet pour qu'iOS passe la main à l'appli.
+// Petites icônes (copier / copié).
+const COPY_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const CHECK_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`;
 const IS_ANDROID = /android/i.test(navigator.userAgent);
 const letterboxdUrl = m => {
   const web = "https://letterboxd.com/search/" + encodeURIComponent(m.original || m.title) + "/";
@@ -685,8 +689,7 @@ function renderFilm(id) {
   const nT = new Set(shows.map(s => s[1])).size;
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
   $("#main").innerHTML = `
-    <div class="film-head${m.poster ? " hero" : ""}"${m.poster ? ` style="--bg:url('${esc(m.poster)}')"` : ""}>${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" rel="noopener">Voir sur Letterboxd ↗</a>
-      <button class="ext copytitle" data-copy="${esc(m.original || m.title)}">Copier le titre</button>
+    <div class="film-head${m.poster ? " hero" : ""}"${m.poster ? ` style="--bg:url('${esc(m.poster)}')"` : ""}>${posterHTML(m)}<div><h2>${esc(m.title)}<button class="copyicon" data-copy="${esc(m.original || m.title)}" aria-label="Copier le titre « ${esc(m.original || m.title)} »">${COPY_SVG}</button></h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" rel="noopener">Voir sur Letterboxd ↗</a>
       <button class="seenbtn" data-wish-film="${esc(id)}" aria-pressed="${state.wish.has(id)}">${state.wish.has(id) ? "♥ Envie de voir" : "♡ Envie de voir"}</button>
       <button class="seenbtn" data-seen-film="${esc(id)}" aria-pressed="${state.seen.has(id)}">${state.seen.has(id) ? "✓ Déjà vu" : "Marquer déjà vu"}</button></div></div></div>
     <div class="view-toggle" role="group" aria-label="Affichage">
@@ -814,7 +817,10 @@ $("#main").addEventListener("click", e => {
   if (more) { openSheet(state.data.showtimes[more.dataset.more]); return; }
   const copy = e.target.closest("[data-copy]");
   if (copy) {  // à coller dans la recherche de l'appli Letterboxd
-    navigator.clipboard?.writeText(copy.dataset.copy).then(() => { copy.textContent = "Titre copié ✓"; }, () => {});
+    navigator.clipboard?.writeText(copy.dataset.copy).then(() => {
+      copy.innerHTML = CHECK_SVG; copy.setAttribute("aria-label", "Titre copié");
+      setTimeout(() => { copy.innerHTML = COPY_SVG; }, 1500);
+    }, () => {});
     return;
   }
   const wishFilm = e.target.closest("[data-wish-film]");
