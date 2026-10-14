@@ -297,19 +297,13 @@ dialog.disc .card-top { gap: 10px; }
 .disc-actions button.like { border-color: #4DC596; color: #4DC596; font-size: 28px; }
 .disc-actions button.small { width: auto; height: 40px; padding: 0 14px; border-radius: 999px; border-color: #3A4256; color: #C9CFDC; font-size: 14px; font-weight: 600; }
 
-/* --- Rentabilité --- */
+/* --- Films vus ce mois-ci --- */
 .stats { margin-top: 26px; padding-top: 18px; border-top: 1px solid #E1E6EF; }
 .stats h3 { margin: 0; font: 600 13px "Barlow", sans-serif; color: #5B6680; text-transform: uppercase; letter-spacing: .05em; }
 .stat-big { font: 700 36px/1.1 "Barlow Condensed", sans-serif; margin-top: 4px; }
 .stats p { margin: 6px 0; }
-.meter { height: 10px; border-radius: 99px; background: #E8EDF4; overflow: hidden; margin: 10px 0 6px; }
-.meter i { display: block; height: 100%; background: linear-gradient(90deg, #F2C230, #4DC596); border-radius: 99px; }
-.stats .verdict { font-weight: 600; color: #16203A; font-size: 15px; }
 .stats .seenlist { font-size: 13px; }
 .stats .hint { font-size: 12px; }
-.stats details { margin-top: 8px; font-size: 14px; color: #5B6680; }
-.stats details label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 8px; }
-.stats details input { width: 90px; border: 1.5px solid #CDD5E2; border-radius: 8px; padding: 6px 8px; text-align: right; }
 
 /* --- Ma carte --- */
 .iconbtn { margin-left: auto; border: 0; background: none; color: #fff; font-size: 20px; padding: 4px 8px; line-height: 1; }
@@ -941,27 +935,19 @@ async function renderCard() {
   $("#cardBody").insertAdjacentHTML("beforeend", statsHTML());
 }
 
-// Rentabilité : films marqués « Déjà vu » ce mois-ci × prix d'une place, comparé au prix de la carte.
+// Films marqués « Déjà vu » ce mois-ci (sans notion de prix : il dépend du cinéma).
 function statsHTML() {
-  const month = parisNow().slice(0, 7), price = store.get("cardPrice", 21.9), ticket = store.get("ticketPrice", 12);
+  const month = parisNow().slice(0, 7);
   const ids = Object.entries(state.seenAt).filter(([, d]) => d && d.startsWith(month)).map(([id]) => id);
-  const n = ids.length, value = n * ticket, ratio = price ? value / price : 0, need = Math.max(0, Math.ceil(price / ticket) - n);
-  const eur = v => v.toFixed(2).replace(".", ",").replace(",00", "") + " €";
+  const n = ids.length;
   const monthName = new Date(month + "-15T12:00:00").toLocaleDateString("fr-FR", { month: "long" });
   const titles = ids.map(id => state.data?.movies[id]?.title).filter(Boolean);
   return `<section class="stats">
-    <h3>Ma carte en ${esc(monthName)}</h3>
+    <h3>En ${esc(monthName)}</h3>
     <div class="stat-big">${n} film${n > 1 ? "s" : ""} vu${n > 1 ? "s" : ""}</div>
-    <p>${n} × ${eur(ticket)} = <b>${eur(value)}</b> de places, pour une carte à ${eur(price)}/mois</p>
-    <div class="meter" role="img" aria-label="Rentabilité ${Math.round(ratio * 100)} %"><i style="width:${Math.min(100, ratio * 100)}%"></i></div>
-    <p class="verdict">${ratio >= 1 ? `🎉 Carte rentabilisée ${ratio.toFixed(1).replace(".", ",")}× (${eur(value - price)} d'économie)`
-      : `Encore ${need} film${need > 1 ? "s" : ""} pour la rentabiliser`}</p>
     ${titles.length ? `<p class="seenlist">${titles.map(esc).join(" · ")}</p>` : ""}
     <p class="hint">On compte les films que tu marques « Déjà vu » (bouton sur la fiche du film).</p>
-    <details><summary>Ajuster les prix</summary>
-      <label>Carte (€/mois) <input id="cardPrice" inputmode="decimal" value="${String(price).replace(".", ",")}"></label>
-      <label>Une place (€) <input id="ticketPrice" inputmode="decimal" value="${String(ticket).replace(".", ",")}"></label>
-    </details></section>`;
+  </section>`;
 }
 async function openCard() {
   await renderCard();
@@ -981,13 +967,6 @@ $("#cardBody").addEventListener("click", async e => {
 });
 $("#cardBody").addEventListener("change", e => {
   if (e.target.id === "cardNum") cardDB.set("number", e.target.value.trim()).catch(() => {});
-  if (e.target.id === "cardPrice" || e.target.id === "ticketPrice") {
-    const v = parseFloat(e.target.value.replace(",", "."));
-    if (v > 0) {
-      store.set(e.target.id, v);
-      setTimeout(() => { $(".stats").outerHTML = statsHTML(); $(".stats details").open = true; });  // après la sortie du champ
-    }
-  }
 });
 $("#cardFile").onchange = async e => {
   const f = e.target.files[0]; e.target.value = "";
