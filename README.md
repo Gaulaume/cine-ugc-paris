@@ -38,6 +38,13 @@ Le filtre « ✦ Nouveautés » garde les films sortis depuis 7 jours et ceux pa
 (avant-premières), du plus récent au plus ancien. Badge « Nouveau » / « Sortie mer. 21 oct. »
 dans la liste ; les séances en avant-première portent la mention « Avant-première ».
 
+## Filtres
+Barre compacte : « 🎞 Découvrir », « Filtres » (pastille = nombre de filtres actifs), tri.
+« Filtres » ouvre un panneau avec tout visible : version (VO/VF), sélection (Nouveautés,
+Mes envies, Mes salles), fin de séance, enseigne, arrondissement ; « Voir N films » donne le
+résultat en direct, « Réinitialiser » enlève tout. Les filtres actifs s'affichent en
+étiquettes sous la barre, retirables d'un ✕.
+
 ## Confort
 - Tri « les plus diffusés » ou « mieux notés » (note des spectateurs AlloCiné ; les films
   avec moins de 20 avis passent après), choix mémorisé. En « mieux notés », les sorties des

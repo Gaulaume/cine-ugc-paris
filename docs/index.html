@@ -106,7 +106,28 @@ button { cursor: pointer; }
 .day[aria-pressed="true"] { background: var(--ticket); color: var(--ticket-ink); border-color: var(--ticket); }
 
 /* --- Filtres --- */
-.filters { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 4px; scrollbar-width: none; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px 4px; }
+@media (max-width: 360px) { .filters { gap: 5px; padding-left: 12px; padding-right: 12px; } .filters .chip { padding: 6px 9px; font-size: 13px; } }
+.statusrow { display: flex; align-items: center; justify-content: space-between; padding-right: 10px; }
+.statusrow .status { padding-top: 0; }
+.layoutbtn { border: 0; background: none; color: var(--muted); font-size: 13px; font-weight: 600; padding: 4px 6px; white-space: nowrap; }
+#filtersCount { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 6px; border-radius: 99px;
+  background: var(--ticket); color: var(--ticket-ink); font-size: 12px; font-weight: 700; vertical-align: 1px; }
+#filtersCount:empty { display: none; }
+.activef { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 16px 0; }
+.activef:empty { display: none; }
+.pill { border: 0; border-radius: 999px; padding: 4px 10px; background: var(--ticket); color: var(--ticket-ink); font-size: 13px; font-weight: 600; }
+.fopts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fopts.arrs { display: grid; grid-template-columns: repeat(5, 1fr); }
+.fopt { border: 1.5px solid var(--line); background: var(--page); color: var(--ink); border-radius: 10px; padding: 8px 12px; font-size: 14px; font-weight: 500; }
+.fopts.arrs .fopt { padding: 8px 0; }
+.fopt[aria-pressed="true"] { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.fsheet-foot { position: sticky; bottom: 0; display: flex; gap: 10px; padding: 16px 0 4px; background: var(--surface); }
+.fsheet-foot button { flex: 1; border: 0; border-radius: 10px; padding: 12px; font: 600 15px "Barlow", sans-serif; }
+.fsheet-foot .ghost { flex: none; background: var(--page); color: var(--ink); }
+.fsheet-foot .primary { background: var(--ticket); color: var(--ticket-ink); }
+#fsheetBody { padding: 0 16px 8px; }
+#fsheetBody .list-sep:first-child { margin-top: 4px; }
 .filters::-webkit-scrollbar { display: none; }
 .chip {
   flex: none; border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px;
@@ -353,29 +374,23 @@ dialog.card::backdrop { background: rgba(0,0,0,.6); }
     <button class="x" id="installClose" aria-label="Masquer">✕</button>
   </div>
 
-  <div class="filters" role="group" aria-label="Filtres">
+  <div class="filters" role="group" aria-label="Filtres et tri">
     <button class="chip discover" id="discoverBtn">🎞 Découvrir</button>
-    <button class="chip" id="layoutBtn" aria-label="Changer d'affichage"></button>
+    <button class="chip" id="filtersBtn" aria-haspopup="dialog">Filtres<b id="filtersCount"></b></button>
     <label class="chip"><select id="sort" aria-label="Trier les films">
-      <option value="pop">Trier : les plus diffusés</option><option value="note">Trier : mieux notés</option>
+      <option value="pop">↕ Plus diffusés</option><option value="note">↕ Mieux notés</option>
     </select></label>
-    <button class="chip" data-f="nouv" aria-pressed="false">✦ Nouveautés</button>
-    <button class="chip" data-f="envies" aria-pressed="false">♥ Mes envies</button>
-    <button class="chip" data-f="vo" aria-pressed="false">VO</button>
-    <button class="chip" data-f="vf" aria-pressed="false">VF</button>
-    <button class="chip" data-f="fav" aria-pressed="false">★ Mes salles</button>
-    <label class="chip"><select id="endBy" aria-label="Heure de fin de la séance">
-      <option value="">Fin : peu importe</option><option value="1320">Fin avant 22 h</option>
-      <option value="1380">Fin avant 23 h</option><option value="1440">Fin avant minuit</option>
-    </select></label>
-    <label class="chip"><select id="group" aria-label="Enseigne">
-      <option value="">Toutes enseignes</option><option>UGC</option><option>MK2</option><option value="Indépendant">Indépendants</option>
-    </select></label>
-    <label class="chip"><select id="arr" aria-label="Arrondissement"><option value="">Tous arrondissements</option></select></label>
   </div>
-  <div class="status" id="status" aria-live="polite"></div>
+  <div class="activef" id="activeFilters" aria-label="Filtres actifs"></div>
+  <div class="statusrow"><div class="status" id="status" aria-live="polite"></div><button class="layoutbtn" id="layoutBtn"></button></div>
 
   <main id="main"></main>
+
+  <!-- Filtres : tout est visible d'un coup, résultat en direct -->
+  <dialog class="sheet" id="fsheet" aria-label="Filtres">
+    <div class="card-top"><h2>Filtres</h2><button class="x" id="fsheetClose" aria-label="Fermer">✕</button></div>
+    <div id="fsheetBody"></div>
+  </dialog>
 
   <!-- Actions sur une séance : double séance, partage, calendrier -->
   <dialog class="sheet" id="sheet" aria-label="Séance">
@@ -457,8 +472,7 @@ async function load() {
     if (!state.byMovie.has(s[0])) state.byMovie.set(s[0], []);
     state.byMovie.get(s[0]).push(s);
   }
-  const arrs = [...new Set(Object.values(state.data.theaters).map(t => t.arr))].sort((a, b) => a - b);
-  $("#arr").insertAdjacentHTML("beforeend", arrs.map(a => `<option value="${a}">${a === 1 ? "1er" : a + "e"} arr.</option>`).join(""));
+  state.arrs = [...new Set(Object.values(state.data.theaters).map(t => t.arr))].sort((a, b) => a - b);
   renderDays();
   syncChips();
   $("#sort").value = state.sort;
@@ -698,16 +712,79 @@ $("#days").onclick = e => {
   const b = e.target.closest("[data-day]"); if (!b) return;
   state.day = b.dataset.day; renderDays(); route();
 };
-const syncChips = () => document.querySelectorAll("[data-f]").forEach(b => b.setAttribute("aria-pressed", !!state[b.dataset.f]));
-document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => {
-  const f = b.dataset.f;
-  state[f] = !state[f];
-  if (f === "vo" || f === "vf") store.set(f, state[f]);
+// --- Filtres ---
+// Chaque filtre : [clé, valeur, libellé]. Les booléens se cochent, les autres se choisissent (re-toucher = retirer).
+const ENDS = [["1320", "22 h"], ["1380", "23 h"], ["1440", "minuit"]];
+const arrLabel = a => a === 1 ? "1er" : a + "e";
+const FILTER_SECTIONS = () => [
+  ["Version", [["vo", true, "VO (sans les doublés)"], ["vf", true, "VF (en français)"]]],
+  ["Sélection", [["nouv", true, "✦ Nouveautés"], ["envies", true, "♥ Mes envies"], ["fav", true, "★ Mes salles"]]],
+  ["Fin de la séance avant", ENDS.map(([v, l]) => ["endBy", v, l])],
+  ["Enseigne", [["group", "UGC", "UGC"], ["group", "MK2", "MK2"], ["group", "Indépendant", "Indépendants"]]],
+  ["Arrondissement", (state.arrs || []).map(a => ["arr", String(a), arrLabel(a)])],
+];
+const isOn = (k, v) => v === true ? !!state[k] : state[k] === v;
+function activeFilters() {
+  const out = [];
+  for (const [, items] of FILTER_SECTIONS())
+    for (const [k, v, l] of items) if (isOn(k, v)) out.push([k, k === "endBy" ? `Fin avant ${l}` : k === "arr" ? `${l} arr.` : l.replace(/ \(.*\)/, "")]);
+  return out;
+}
+function setFilter(k, v) {
+  state[k] = v === true ? !state[k] : (state[k] === v ? "" : v);
+  if (k === "vo" || k === "vf") store.set(k, state[k]);
   syncChips(); route();
+}
+// Nombre de films visibles avec les filtres actuels (pour « Voir les N films »).
+function visibleCount() {
+  let n = 0;
+  for (const [id, list] of state.byMovie) {
+    const m = state.data.movies[id];
+    if (!m || (state.nouv && !isNew(m)) || (state.envies && !state.wish.has(id)) || (state.seen.has(id) && !state.showSeen)) continue;
+    if (filtered(list).length) n++;
+  }
+  return n;
+}
+function renderFilterSheet() {
+  const n = visibleCount();
+  $("#fsheetBody").innerHTML = FILTER_SECTIONS().map(([title, items]) => `
+    <h3 class="list-sep">${esc(title)}</h3>
+    <div class="fopts${title === "Arrondissement" ? " arrs" : ""}">${items.map(([k, v, l]) =>
+      `<button class="fopt" data-set="${k}" data-val="${v === true ? "1" : esc(v)}" aria-pressed="${isOn(k, v)}">${esc(l)}</button>`).join("")}</div>`).join("") + `
+    <div class="fsheet-foot">
+      <button class="ghost" data-reset="1">Réinitialiser</button>
+      <button class="primary" id="fsheetApply">Voir ${n} film${n > 1 ? "s" : ""}</button>
+    </div>`;
+}
+function syncChips() {
+  const act = activeFilters();
+  $("#filtersCount").textContent = act.length || "";
+  $("#filtersBtn").setAttribute("aria-pressed", act.length > 0);
+  $("#activeFilters").innerHTML = act.map(([k, l]) => `<button class="pill" data-clear="${k}" aria-label="Retirer le filtre ${esc(l)}">${esc(l)} ✕</button>`).join("");
+  if ($("#fsheet").open) renderFilterSheet();
+}
+$("#filtersBtn").onclick = () => { renderFilterSheet(); $("#fsheet").showModal(); };
+$("#fsheetClose").onclick = () => $("#fsheet").close();
+$("#fsheet").addEventListener("click", e => {
+  if (e.target === $("#fsheet") || e.target.id === "fsheetApply") return $("#fsheet").close();
+  const b = e.target.closest("[data-set]");
+  if (b) return setFilter(b.dataset.set, b.dataset.val === "1" && ["vo", "vf", "nouv", "envies", "fav"].includes(b.dataset.set) ? true : b.dataset.val);
+  if (e.target.closest("[data-reset]")) {
+    Object.assign(state, { vo: false, vf: false, nouv: false, envies: false, fav: false, endBy: "", group: "", arr: "" });
+    store.set("vo", false); store.set("vf", false); syncChips(); route();
+  }
 });
-$("#group").onchange = e => { state.group = e.target.value; route(); };
-$("#endBy").onchange = e => { state.endBy = e.target.value; route(); };
-const syncLayout = () => { $("#layoutBtn").textContent = state.layout === "grid" ? "☰ Liste" : "▦ Affiches"; };
+$("#activeFilters").onclick = e => {
+  const b = e.target.closest("[data-clear]"); if (!b) return;
+  const k = b.dataset.clear;
+  state[k] = typeof state[k] === "boolean" ? false : "";
+  if (k === "vo" || k === "vf") store.set(k, false);
+  syncChips(); route();
+};
+const syncLayout = () => {
+  $("#layoutBtn").textContent = state.layout === "grid" ? "☰ Liste" : "▦ Affiches";
+  $("#layoutBtn").setAttribute("aria-label", state.layout === "grid" ? "Afficher en liste" : "Afficher les affiches");
+};
 $("#layoutBtn").onclick = () => { state.layout = state.layout === "grid" ? "list" : "grid"; store.set("layout", state.layout); syncLayout(); route(); };
 $("#themeBtn").onclick = () => {
   const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -715,7 +792,6 @@ $("#themeBtn").onclick = () => {
 };
 syncLayout();
 $("#sort").onchange = e => { state.sort = e.target.value; store.set("sort", state.sort); route(); };
-$("#arr").onchange = e => { state.arr = e.target.value; route(); };
 $("#main").addEventListener("click", e => {
   const film = e.target.closest("[data-film]");
   if (film) {
