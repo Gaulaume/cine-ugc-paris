@@ -1,48 +1,47 @@
-"""Icônes de l'appli : le clap de cinéma « clapperboard » de Lucide (https://lucide.dev).
+"""Icônes de l'appli à partir du logo (ticket de cinéma, style impression riso).
 
-Lucide est sous licence ISC (libre, avis de licence dans docs/icons/LICENSE-lucide.txt).
-Régénérer : python scripts/make_icons.py docs/icons  (nécessite playwright + chromium)
+Source : scripts/logo-source.png (carré, ticket centré sur fond papier).
+Régénérer : pip install pillow && python scripts/make_icons.py docs/icons
 """
-import asyncio
+import random
 import sys
+from pathlib import Path
 
-from playwright.async_api import async_playwright
+from PIL import Image, ImageDraw, ImageFilter
 
-# Tracés de lucide-static 1.56.0, icons/clapperboard.svg (grille 24×24).
-CLAPPERBOARD = """
-  <path d="m12.296 3.464 3.02 3.956" />
-  <path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z" />
-  <path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-  <path d="m6.18 5.276 3.1 3.899" />
-"""
-BLUE, YELLOW = "#1B2A4E", "#F2C230"  # couleurs de l'appli (bandeau et « ticket »)
+SOURCE = Path(__file__).with_name("logo-source.png")
+BG = (252, 248, 237)  # couleur du papier
 
 
-def svg(maskable: bool = False) -> str:
-    # Taille du pictogramme : plus petit en « maskable » (Android rogne jusqu'à un cercle).
-    size = 250 if maskable else 300
-    scale = size / 24
-    offset = (512 - size) / 2
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="{BLUE}"/>
-  <g transform="translate({offset} {offset + 6}) scale({scale})" fill="none" stroke="{YELLOW}"
-     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{CLAPPERBOARD}</g>
-</svg>'''
+def grain(img: Image.Image, amount: int = 5, seed: int = 1) -> Image.Image:
+    """Léger grain de papier, pour que le fond agrandi ne soit pas trop lisse."""
+    rnd, px = random.Random(seed), img.load()
+    for y in range(img.size[1]):
+        for x in range(img.size[0]):
+            if rnd.random() < .35:
+                d = rnd.randint(-amount, amount)
+                px[x, y] = tuple(max(0, min(255, c + d)) for c in px[x, y])
+    return img
 
 
-async def main(out: str) -> None:
-    async with async_playwright() as p:
-        browser = await p.chromium.launch()
-        for name, px, mask in [("icon-512", 512, False), ("icon-192", 192, False),
-                               ("apple-touch-icon", 180, False), ("maskable-512", 512, True)]:
-            page = await browser.new_page(viewport={"width": px, "height": px})
-            await page.set_content(f'<style>html,body{{margin:0}}svg{{width:{px}px;height:{px}px;display:block}}</style>{svg(mask)}')
-            await page.screenshot(path=f"{out}/{name}.png")
-            await page.close()
-        with open(f"{out}/icon.svg", "w") as f:
-            f.write(svg())
-        await browser.close()
+def icon(src: Image.Image, size: int, fill: float) -> Image.Image:
+    """Logo centré occupant `fill` du carré, bords fondus dans le fond papier."""
+    canvas = Image.new("RGB", (size, size), BG)
+    s = int(size * fill)
+    logo = src.resize((s, s), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=1.2, percent=60, threshold=2))
+    mask = Image.new("L", (s, s), 0)
+    ImageDraw.Draw(mask).rectangle((s // 20, s // 20, s - s // 20, s - s // 20), fill=255)
+    canvas.paste(logo, ((size - s) // 2, (size - s) // 2), mask.filter(ImageFilter.GaussianBlur(s // 40)))
+    return grain(canvas)
+
+
+def main(out: str) -> None:
+    src = Image.open(SOURCE).convert("RGB")
+    # « maskable » : Android peut rogner jusqu'à un cercle, on laisse plus de marge.
+    for name, size, fill in [("icon-512", 512, .92), ("icon-192", 192, .92),
+                             ("apple-touch-icon", 180, .92), ("maskable-512", 512, .74)]:
+        icon(src, size, fill).save(Path(out) / f"{name}.png")
 
 
 if __name__ == "__main__":
-    asyncio.run(main(sys.argv[1]))
+    main(sys.argv[1])
