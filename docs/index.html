@@ -531,7 +531,17 @@ const endTime = s => {
 
 // Itinéraire Google Maps vers la salle (depuis la position du téléphone).
 // Fiche Letterboxd (recherche par titre original : Letterboxd n'a pas d'API publique pour les notes).
-const letterboxdUrl = m => "https://letterboxd.com/search/films/" + encodeURIComponent(m.original || m.title) + "/";
+// Letterboxd : ouvre l'appli si elle est installée, sur une recherche du titre original.
+// - Android : lien « intent » vers l'appli (com.letterboxd.letterboxd), repli sur le site sinon.
+// - iPhone : lien universel letterboxd.com/search/<titre>/ (non exclu de l'appli par Letterboxd),
+//   ouvert sans nouvel onglet pour qu'iOS passe la main à l'appli.
+const IS_ANDROID = /android/i.test(navigator.userAgent);
+const letterboxdUrl = m => {
+  const web = "https://letterboxd.com/search/" + encodeURIComponent(m.original || m.title) + "/";
+  return IS_ANDROID
+    ? `intent://${web.slice(8)}#Intent;scheme=https;package=com.letterboxd.letterboxd;S.browser_fallback_url=${encodeURIComponent(web)};end`
+    : web;
+};
 const mapsUrl = t => "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(`${t.name}, ${t.address}, ${t.zip} Paris`);
 const rating = m => m.rating ? ` · ★ ${String(m.rating).replace(".", ",")}` : "";
 const arrBadge = (t, cls = "arr") => `<span class="${cls} ${t.group === "Indépendant" ? "" : t.group}">${t.arr}</span>`;
@@ -674,7 +684,7 @@ function renderFilm(id) {
   const nT = new Set(shows.map(s => s[1])).size;
   setStatus(shows.length ? `${shows.length} séance${shows.length > 1 ? "s" : ""} dans ${nT} salle${nT > 1 ? "s" : ""}` : "");
   $("#main").innerHTML = `
-    <div class="film-head${m.poster ? " hero" : ""}"${m.poster ? ` style="--bg:url('${esc(m.poster)}')"` : ""}>${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" target="_blank" rel="noopener">Note Letterboxd ↗</a>
+    <div class="film-head${m.poster ? " hero" : ""}"${m.poster ? ` style="--bg:url('${esc(m.poster)}')"` : ""}>${posterHTML(m)}<div><h2>${esc(m.title)}</h2>${orig}<p>${esc(meta)}</p><div class="film-actions"><a class="ext" href="${esc(letterboxdUrl(m))}" rel="noopener">Voir sur Letterboxd ↗</a>
       <button class="seenbtn" data-wish-film="${esc(id)}" aria-pressed="${state.wish.has(id)}">${state.wish.has(id) ? "♥ Envie de voir" : "♡ Envie de voir"}</button>
       <button class="seenbtn" data-seen-film="${esc(id)}" aria-pressed="${state.seen.has(id)}">${state.seen.has(id) ? "✓ Déjà vu" : "Marquer déjà vu"}</button></div></div></div>
     <div class="view-toggle" role="group" aria-label="Affichage">
