@@ -38,6 +38,12 @@ Le filtre « ✦ Nouveautés » garde les films sortis depuis 7 jours et ceux pa
 (avant-premières), du plus récent au plus ancien. Badge « Nouveau » / « Sortie mer. 21 oct. »
 dans la liste ; les séances en avant-première portent la mention « Avant-première ».
 
+## Par cinéma
+La recherche trouve aussi les salles (« danton », « mk2 », « champo »…). Chaque salle a sa
+page (`#/salle/<code>`) : tous ses films du jour avec leurs horaires (filtres respectés, envies
+d'abord), ★ pour l'ajouter à « Mes salles », liens Itinéraire et AlloCiné. Sur la fiche d'un
+film, le nom d'une salle ouvre sa page.
+
 ## Filtres
 Barre compacte : « 🎞 Découvrir », « Filtres » (pastille = nombre de filtres actifs), tri.
 « Filtres » ouvre un panneau avec tout visible : version (VO/VF), sélection (Nouveautés,
