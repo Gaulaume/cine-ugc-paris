@@ -75,9 +75,6 @@ Bouton « 🎞 Découvrir » : les films à l'affiche défilent un par un (nouve
 glisser à droite ou ♥ = envie de voir, à gauche ou ✕ = pas pour moi, « ✓ vu » = déjà vu.
 Filtre « ♥ Mes envies » et bouton « ♡ Envie de voir » sur la fiche du film.
 
-## Films vus
-Dans « Ma carte » : nombre et titres des films marqués « Déjà vu » ce mois-ci (sur le téléphone).
-
 ## Logo
 Ticket de cinéma au style impression riso / comic (points de trame, couleurs légèrement
 décalées), sur fond papier. Source : `scripts/logo-source.png` ; les icônes de `docs/icons/`
@@ -88,7 +85,3 @@ Thème sombre « salle de cinéma » par défaut (bouton ◐ pour passer en clai
 (grille de 3 affiches avec note et badges) ou « Liste », fiche film avec l'affiche floutée en
 fond. Choix mémorisés sur le téléphone.
 
-## Ma carte
-Bouton « 🎟 Ma carte » : on choisit une capture de sa carte UGC Illimité (et, si on veut, son
-numéro). Elle est gardée **uniquement sur le téléphone** (IndexedDB du navigateur) : rien n'est
-envoyé ni publié. Écran maintenu allumé pendant l'affichage. Raccourci : `…/#carte`.
