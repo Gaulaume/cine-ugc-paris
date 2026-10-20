@@ -75,6 +75,9 @@ Bouton « 🎞 Découvrir » : les films à l'affiche défilent un par un (nouve
 glisser à droite ou ♥ = envie de voir, à gauche ou ✕ = pas pour moi, « ✓ vu » = déjà vu.
 Filtre « ♥ Mes envies » et bouton « ♡ Envie de voir » sur la fiche du film.
 
+Raccourcis sur chaque affiche de la liste : ♡ (envie de voir) et ✓ (déjà vu, avec un bandeau
+« Annuler » pendant 5 s).
+
 ## Logo
 Ticket de cinéma au style impression riso / comic (points de trame, couleurs légèrement
 décalées), sur fond papier. Source : `scripts/logo-source.png` ; les icônes de `docs/icons/`

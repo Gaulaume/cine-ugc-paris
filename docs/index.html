@@ -185,7 +185,7 @@ button { cursor: pointer; }
 .films.grid .film-row > div:nth-child(2) { min-width: 0; }
 .films.grid h2 { font-size: 16px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .films.grid p { display: none; }
-.films.grid .badge { position: absolute; top: 6px; left: 6px; font-size: 10px; margin: 0; z-index: 1; }
+.films.grid .badge { position: absolute; top: 6px; left: 6px; max-width: calc(100% - 50px); font-size: 10px; margin: 0; z-index: 1; }
 .films.grid .badge.seen { display: none; }  /* l'affiche grisée suffit */
 .pwrap { position: relative; }
 .films.grid .next { text-align: left; display: flex; gap: 5px; align-items: baseline; }
@@ -315,8 +315,21 @@ dialog.sheet .list-sep { margin: 20px 0 6px; }
 
 /* --- Envies --- */
 .chip.discover { background: var(--ticket); color: var(--ticket-ink); border-color: var(--ticket); font-weight: 600; }
-.wishmark { position: absolute; top: 4px; right: 6px; color: #FF5A6A; font-size: 18px; text-shadow: 0 1px 4px rgba(0,0,0,.6); z-index: 1; }
-.films:not(.grid) .pwrap .wishmark { top: -4px; right: -4px; font-size: 16px; }
+/* Boutons rapides ♡ / ✓ posés sur l'affiche */
+.frow { position: relative; }
+.qa { position: absolute; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
+.films:not(.grid) .qa { top: 14px; left: 46px; }
+.films.grid .qa { top: 6px; right: 6px; }
+.qbtn { width: 30px; height: 30px; border-radius: 50%; border: 0; display: grid; place-items: center; padding: 0;
+  background: rgba(7,9,15,.68); color: #fff; font-size: 16px; line-height: 1; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+.qbtn[data-qwish].on { color: #FF5A6A; }
+.qbtn[data-qseen].on { background: #4DC596; color: #07090F; }
+#toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 18px); transform: translate(-50%, 140%); opacity: 0;
+  display: flex; gap: 14px; align-items: center; max-width: calc(100% - 32px); padding: 10px 12px 10px 16px; border-radius: 12px;
+  background: var(--ink); color: var(--page); font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.35); transition: transform .2s, opacity .2s; z-index: 50; }
+#toast.show { transform: translate(-50%, 0); opacity: 1; }
+#toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#toast button { flex: none; border: 0; background: none; color: var(--ticket); font-weight: 700; font-size: 14px; padding: 4px; }
 
 /* --- Découverte --- */
 dialog.disc { width: 100%; max-width: 640px; height: 100dvh; max-height: none; margin: 0 auto; border: 0; padding: 0; background: #07090F; color: #EEF1F7; overflow: hidden; }
@@ -613,22 +626,38 @@ function renderList() {
   }
   const rowHTML = r => {
     const seen = state.seen.has(r.id) ? `<span class="badge seen">Déjà vu</span>` : "";
-    const heart = state.wish.has(r.id) ? `<span class="wishmark" aria-label="Envie de voir">♥</span>` : "";
+    const w = state.wish.has(r.id), sn = state.seen.has(r.id), t = esc(r.m.title);
+    // Boutons rapides sur l'affiche (hors du bouton de la ligne, qui ouvre la fiche).
+    const quick = `<div class="qa">
+      <button class="qbtn${w ? " on" : ""}" data-qwish="${r.id}" aria-pressed="${w}" aria-label="${w ? "Retirer de mes envies" : "Envie de voir"} : ${t}">${w ? "♥" : "♡"}</button>
+      <button class="qbtn${sn ? " on" : ""}" data-qseen="${r.id}" aria-pressed="${sn}" aria-label="${sn ? "Pas encore vu" : "Déjà vu"} : ${t}">✓</button></div>`;
     const info = r.n ? `${r.theaters} salle${r.theaters > 1 ? "s" : ""} · ${r.n} séance${r.n > 1 ? "s" : ""}` : "Pas de séance ce jour-là";
     const next = r.later ? `<b>${esc(fmtDay(r.later[2].slice(0, 10)))}</b><small>${r.later[2].slice(11)}</small>`
       : r.next ? `<b>${r.next.slice(11)}</b><small>prochaine</small>` : `<small>terminé</small>`;
     return `
-    <li><button class="film-row${state.seen.has(r.id) ? " is-seen" : ""}" data-film="${r.id}"${r.later ? ` data-goday="${r.later[2].slice(0, 10)}"` : ""}>
-      <div class="pwrap">${posterHTML(r.m)}${heart}${r.m.rating ? `<span class="rate">★ ${String(r.m.rating).replace(".", ",")}</span>` : ""}</div>
+    <li class="frow"><button class="film-row${state.seen.has(r.id) ? " is-seen" : ""}" data-film="${r.id}"${r.later ? ` data-goday="${r.later[2].slice(0, 10)}"` : ""}>
+      <div class="pwrap">${posterHTML(r.m)}${r.m.rating ? `<span class="rate">★ ${String(r.m.rating).replace(".", ",")}</span>` : ""}</div>
       <div>${badge(r.m)}${seen}<h2>${esc(r.m.title)}</h2><p>${info}${r.m.runtime ? " · " + esc(r.m.runtime) : ""}${rating(r.m)}</p></div>
       <div class="next">${next}</div>
-    </button></li>`;
+    </button>${quick}</li>`;
   };
   const list = rs => `<ul class="films${state.layout === "grid" ? " grid" : ""}">${rs.map(rowHTML).join("")}</ul>`;
   const recent = rows.filter(r => isRecent(r.m)), older = rows.filter(r => !isRecent(r.m));
   $("#main").innerHTML = cineHTML + (byNote && recent.length && older.length
     ? `<h3 class="list-sep">Sorties récentes</h3>${list(recent)}<h3 class="list-sep">Sortis il y a plus de 3 mois</h3>${list(older)}${seenLink}`
     : list(rows) + seenLink);
+}
+
+// Petit bandeau en bas de l'écran, avec un bouton d'action (ex. « Annuler »).
+let toastTimer;
+function toast(text, undo) {
+  let el = $("#toast");
+  if (!el) { el = document.createElement("div"); el.id = "toast"; el.setAttribute("role", "status"); document.body.append(el); }
+  el.innerHTML = `<span>${esc(text)}</span>${undo ? `<button type="button">Annuler</button>` : ""}`;
+  el.className = "show";
+  const hide = () => { el.className = ""; };
+  if (undo) el.querySelector("button").onclick = () => { undo(); hide(); };
+  clearTimeout(toastTimer); toastTimer = setTimeout(hide, 5000);
 }
 
 function emptyHTML(title, hint) {
@@ -863,6 +892,15 @@ $("#main").addEventListener("click", e => {
       copy.innerHTML = CHECK_SVG; copy.setAttribute("aria-label", "Titre copié");
       setTimeout(() => { copy.innerHTML = COPY_SVG; }, 1500);
     }, () => {});
+    return;
+  }
+  const qw = e.target.closest("[data-qwish]");
+  if (qw) { toggleWish(qw.dataset.qwish); route(); return; }
+  const qs = e.target.closest("[data-qseen]");
+  if (qs) {
+    const id = qs.dataset.qseen, was = state.seen.has(id);
+    toggleSeen(id, !was); route();
+    if (!was) toast(`« ${state.data.movies[id]?.title} » marqué déjà vu`, () => { toggleSeen(id, false); route(); });
     return;
   }
   const wishFilm = e.target.closest("[data-wish-film]");
