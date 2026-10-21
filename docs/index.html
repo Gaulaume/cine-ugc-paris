@@ -227,7 +227,7 @@ img.poster { display: block; object-fit: cover; height: auto; }
 .time {
   font-family: "Barlow Condensed"; font-size: 18px; font-weight: 600; line-height: 1;
   padding: 7px 9px 6px; border-radius: var(--radius-chip); border: 1.5px solid var(--line);
-  display: inline-flex; align-items: baseline; gap: 5px;
+  display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 5px;
 }
 a.time { color: inherit; text-decoration: none; }
 .time small { font-size: 12px; font-weight: 500; color: var(--muted); }
@@ -238,6 +238,7 @@ a.time { color: inherit; text-decoration: none; }
 .time.past small { color: var(--past); }
 
 .time .end { font-style: normal; font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 1px; }
+.time .started { display: block; flex-basis: 100%; font-style: normal; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
 .time.soon .end { color: var(--ticket-ink); opacity: .75; }
 .cine-name .dist { display: block; font-size: 12px; color: var(--muted); }
 .cine-name .dist a { font-size: 12px; color: var(--focus); font-weight: 500; }
@@ -453,11 +454,16 @@ function toggleWish(id, on = !state.wish.has(id)) {
 }
 
 const DOW = ["dim", "lun", "mar", "mer", "jeu", "ven", "sam"];
-const parisNow = () => {
+const parisNow = (offsetMin = 0) => {
   // Heure locale de Paris au format "AAAA-MM-JJTHH:MM", quel que soit le fuseau du téléphone.
-  const p = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date());
+  const p = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .format(new Date(Date.now() + offsetMin * 60000));
   return p.replace(" ", "T");
 };
+// Une séance reste « à venir » 20 min après l'heure affichée : pubs et bandes-annonces d'abord.
+const GRACE_MIN = 20;
+const cutoff = () => parisNow(-GRACE_MIN);
+const started = s => s[2] < parisNow();  // a commencé (pubs en cours) mais encore jouable
 
 async function load(refresh = false) {
   if (!refresh) $("#status").textContent = "Chargement des séances…";
@@ -504,7 +510,7 @@ function renderDays() {
 
 // anyDay : toutes les séances à venir, quel que soit le jour choisi (pour la recherche).
 function filtered(list, anyDay = false) {
-  const now = parisNow();
+  const now = cutoff();  // séances commencées depuis moins de 20 min = encore à venir
   return list.filter(s => {
     if (anyDay ? s[2] < now : !s[2].startsWith(state.day)) return false;
     // VO = tout sauf les films doublés ; VF = tout ce qui est en français (doublé ou film français).
@@ -575,7 +581,7 @@ function renderList() {
   $("#app").classList.remove("film-mode");
   $("#title").textContent = "Ciné";
   const q = norm(state.q).trim();
-  const now = parisNow();
+  const now = cutoff();  // séances commencées depuis moins de 20 min = encore à venir
   const rows = [];
   let hiddenSeen = 0;
   for (const [id, list] of state.byMovie) {
@@ -676,7 +682,7 @@ function timeChips(list, t, now) {
     if (!past && !soonDone) { cls = "soon"; soonDone = true; }
     if (s[3] === "VF") cls += " vf";
     const end = endTime(s);
-    const inner = `${s[2].slice(11)}<small>${esc(label(s))}</small>${end && !past ? `<i class="end">→ ${end}</i>` : ""}`;
+    const inner = `${s[2].slice(11)}<small>${esc(label(s))}</small>${end && !past ? `<i class="end">→ ${end}</i>` : ""}${!past && started(s) ? `<i class="started">a commencé</i>` : ""}`;
     const url = !past && (s[5] || t.allocine);
     return url ? `<a class="time ${cls}" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Réserver la séance de ${s[2].slice(11)}">${inner}</a>`
                : `<span class="time ${cls}">${inner}</span>`;
@@ -689,7 +695,7 @@ function renderCinema(tid) {
   if (!t) { location.hash = ""; return; }
   $("#app").classList.add("film-mode");
   $("#title").textContent = "Ciné";
-  const now = parisNow();
+  const now = cutoff();  // séances commencées depuis moins de 20 min = encore à venir
   const list = filtered(state.byTheater.get(tid) || []);
   const byM = new Map();
   for (const s of list) { if (!byM.has(s[0])) byM.set(s[0], []); byM.get(s[0]).push(s); }
@@ -720,7 +726,7 @@ function renderFilm(id) {
   if (!m) { location.hash = ""; return; }
   $("#app").classList.add("film-mode");
   $("#title").textContent = "Ciné";
-  const now = parisNow();
+  const now = cutoff();  // séances commencées depuis moins de 20 min = encore à venir
   const shows = filtered(state.byMovie.get(id) || []);
   // Lien pour réafficher les séances passées (aujourd'hui seulement).
   const pastN = state.day === today() && !state.showPast
@@ -742,7 +748,7 @@ function renderFilm(id) {
       const end = endTime(s), fav = state.favs.has(s[1]) ? "★ " : "";
       const more = s[2] >= now ? `<button class="more" data-more="${s.i}" aria-label="Enchaîner un 2e film, partager, calendrier">⋯</button>` : "";
       return `<li class="tl"><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}${end ? `<small>→ ${end}</small>` : ""}</div>
-        <div class="where">${arrBadge(t)}<span>${fav}${esc(t.name)}</span><small>${esc(label(s))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}>${more}</li>`;
+        <div class="where">${arrBadge(t)}<span>${fav}${esc(t.name)}</span><small>${esc([label(s), s[2] >= now && started(s) ? "a commencé" : ""].filter(Boolean).join(" · "))}</small>${url ? `<b class="go" aria-hidden="true">›</b>` : ""}</div></${row.split(" ")[0]}>${more}</li>`;
     }).join("")}</ul>`;
   } else {
     const byT = new Map();
