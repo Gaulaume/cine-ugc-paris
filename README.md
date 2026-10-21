@@ -83,6 +83,12 @@ Ticket de cinéma au style impression riso / comic (points de trame, couleurs l�
 décalées), sur fond papier. Source : `scripts/logo-source.png` ; les icônes de `docs/icons/`
 se régénèrent avec `python scripts/make_icons.py docs/icons` (nécessite Pillow).
 
+## Ouverture instantanée
+Le service worker (`docs/sw.js`) sert l'appli et les séances depuis la copie du téléphone,
+puis les rafraîchit en arrière-plan ; quand de nouvelles séances arrivent, la page se met à
+jour seule (« Séances mises à jour »). Hors ligne, la dernière copie reste utilisable. Les
+polices ne bloquent plus l'affichage et les affiches se chargent au fil du défilement.
+
 ## Apparence
 Thème sombre « salle de cinéma » par défaut (bouton ◐ pour passer en clair), vue « Affiches »
 (grille de 3 affiches avec note et badges) ou « Liste », fiche film avec l'affiche floutée en

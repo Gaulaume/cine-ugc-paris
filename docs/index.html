@@ -19,7 +19,7 @@
 <meta name="apple-mobile-web-app-title" content="Ciné">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root {
   --enamel: #1B2A4E;      /* bleu émail des plaques parisiennes */
@@ -149,6 +149,7 @@ button { cursor: pointer; }
 .films li:only-child .film-row { border-radius: 12px; }
 .list-sep { margin: 14px 16px 0; font: 600 13px "Barlow", sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .list-sep + .films { padding-top: 6px; }
+img.poster { display: block; object-fit: cover; height: auto; }
 .poster {
   width: 64px; aspect-ratio: 2/3; border-radius: 4px; background: var(--line) center/cover no-repeat;
   display: grid; place-items: center; color: var(--muted); font: 600 20px "Barlow Condensed";
@@ -458,20 +459,22 @@ const parisNow = () => {
   return p.replace(" ", "T");
 };
 
-async function load() {
-  $("#status").textContent = "Chargement des séances…";
+async function load(refresh = false) {
+  if (!refresh) $("#status").textContent = "Chargement des séances…";
   try {
-    const res = await fetch("data/showtimes.json", { cache: "no-cache" });
+    // Avec le service worker, la copie du téléphone arrive tout de suite (voir sw.js).
+    const res = await fetch("data/showtimes.json");
     if (!res.ok) throw new Error(res.status);
     state.data = await res.json();
   } catch {
+    if (refresh) return;
     $("#main").innerHTML = `<div class="empty"><h2>Pas encore de séances</h2><p>Les horaires n'ont pas pu être chargés. Vérifie ta connexion, puis rouvre l'appli.</p></div>`;
     $("#status").textContent = "";
     return;
   }
   const today = parisNow().slice(0, 10);
   state.data.days = state.data.days.filter(d => d >= today);
-  state.day = state.data.days[0] || today;
+  if (!refresh || !state.data.days.includes(state.day)) state.day = state.data.days[0] || today;
   // Index par film pour aller vite.
   state.byMovie = new Map();
   state.data.showtimes.forEach((s, i) => { s.i = i; });
@@ -565,7 +568,7 @@ const arrBadge = (t, cls = "arr") => `<span class="${cls} ${t.group === "Indépe
 const label = s => [s[3] === "FR" ? "" : s[3], ...s[4]].filter(Boolean).join(" ");
 
 const posterHTML = (m, cls = "poster") => m.poster
-  ? `<div class="${cls}" style="background-image:url('${esc(m.poster)}')" role="img" aria-label="Affiche"></div>`
+  ? `<img class="${cls}" src="${esc(m.poster)}" loading="lazy" decoding="async" alt="">`
   : `<div class="${cls}" aria-hidden="true">${esc((m.title || "?")[0])}</div>`;
 
 function renderList() {
@@ -1096,7 +1099,18 @@ if (!standalone && !dismissed && /iphone|ipad/i.test(navigator.userAgent)) {
 }
 $("#installBtn").onclick = async () => { if (deferred) { deferred.prompt(); await deferred.userChoice; } $("#install").classList.remove("show"); };
 $("#installClose").onclick = () => { store.set("installDismissed", true); $("#install").classList.remove("show"); };
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+  // De nouvelles séances sont arrivées en arrière-plan : on met l'écran à jour sans rien perdre.
+  navigator.serviceWorker.addEventListener("message", async e => {
+    if (e.data?.type !== "data-updated" || !state.data) return;
+    if ($("#sheet")?.open) return;  // ne pas changer les données sous une feuille ouverte
+    const y = scrollY;
+    await load(true);
+    scrollTo(0, y);
+    toast("Séances mises à jour");
+  });
+}
 
 load();
 </script>
