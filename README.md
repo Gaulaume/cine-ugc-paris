@@ -56,7 +56,8 @@ résultat en direct, « Réinitialiser » enlève tout. Les filtres actifs s'aff
   avec moins de 20 avis passent après), choix mémorisé. En « mieux notés », les sorties des
   3 derniers mois passent d'abord, puis les films plus anciens et les reprises.
 - VO par défaut (cache seulement les films doublés), choix mémorisé ; séances passées masquées
-  (lien pour les revoir) ; heure de fin estimée (film + 15 min de pubs).
+  (lien pour les revoir) ; une séance reste réservable 20 min après l'heure affichée (pubs),
+  avec la mention « a commencé » ; heure de fin estimée (film + 15 min de pubs).
 - Lien « Itinéraire » Google Maps sur chaque salle.
 - « Marquer déjà vu » sur la fiche d'un film : il disparaît de la liste (lien pour les réafficher),
   choix gardé sur le téléphone.
