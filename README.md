@@ -78,6 +78,13 @@ Filtre « ♥ Mes envies » et bouton « ♡ Envie de voir » sur la fiche du fi
 Raccourcis sur chaque affiche de la liste : ♡ (envie de voir) et ✓ (déjà vu, avec un bandeau
 « Annuler » pendant 5 s).
 
+## Appli Android
+Dossier `android/` : petite appli Android (WebView plein écran sur le site, donc toujours à jour).
+Les liens extérieurs (réservation, Letterboxd, Maps, agenda) s'ouvrent dans leur appli ;
+« Partager » utilise le menu d'Android. Le workflow « Appli Android » construit l'APK à chaque
+changement de `android/` et le publie : https://github.com/Gaulaume/cine-ugc-paris/releases/latest/download/cine.apk
+(clé de signature `android/cine.keystore`, fixe pour pouvoir installer les mises à jour par-dessus).
+
 ## Logo
 Ticket de cinéma au style impression riso / comic (points de trame, couleurs légèrement
 décalées), sur fond papier. Source : `scripts/logo-source.png` ; les icônes de `docs/icons/`

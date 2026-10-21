@@ -963,6 +963,17 @@ function icsFor(s) {
     "END:VEVENT", "END:VCALENDAR"].join("\r\n");
 }
 
+// Lien « ajouter à l'agenda » (Google Agenda, ouvert par l'appli Agenda d'Android).
+function gcalUrl(s) {
+  const m = state.data.movies[s[0]], t = state.data.theaters[s[1]];
+  const start = s[2].replace(/[-:]/g, "") + "00", e = endMin(s) ?? (+s[2].slice(11, 13) * 60 + +s[2].slice(14, 16) + 120);
+  const endDay = new Date(s[2].slice(0, 10) + "T12:00:00"); endDay.setDate(endDay.getDate() + Math.floor(e / 1440));
+  const end = endDay.toISOString().slice(0, 10).replace(/-/g, "") + "T" + String(Math.floor(e % 1440 / 60)).padStart(2, "0") + String(e % 60).padStart(2, "0") + "00";
+  const q = new URLSearchParams({ action: "TEMPLATE", text: "🎬 " + m.title, dates: `${start}/${end}`, ctz: "Europe/Paris",
+    location: `${t.name}, ${t.address}, ${t.zip} Paris`, details: [label(s), "Réserver : " + bookUrl(s)].filter(Boolean).join("\n") });
+  return "https://calendar.google.com/calendar/render?" + q;
+}
+
 function openSheet(s) {
   const m = state.data.movies[s[0]], t = state.data.theaters[s[1]], end = endTime(s);
   $("#sheetTitle").textContent = m.title;
@@ -992,11 +1003,14 @@ $("#sheet").addEventListener("click", async e => {
     const s = state.data.showtimes[sh.dataset.share], m = state.data.movies[s[0]], t = state.data.theaters[s[1]];
     const text = `${m.title} — ${t.name}, ${showDate(s)}${label(s) ? " (" + label(s) + ")" : ""}`;
     try {
-      if (navigator.share) await navigator.share({ title: m.title, text, url: bookUrl(s) });
+      if (window.CineApp) CineApp.share(`${text}\n${bookUrl(s)}`);  // appli Android : menu de partage
+      else if (navigator.share) await navigator.share({ title: m.title, text, url: bookUrl(s) });
       else { await navigator.clipboard.writeText(`${text}\n${bookUrl(s)}`); sh.textContent = "Copié ✓"; }
     } catch {}
   }
-  if (ic) {
+  if (ic && window.CineApp) {  // appli Android : pas de téléchargement, on ouvre l'agenda
+    location.href = gcalUrl(state.data.showtimes[ic.dataset.ics]);
+  } else if (ic) {
     const s = state.data.showtimes[ic.dataset.ics];
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([icsFor(s)], { type: "text/calendar;charset=utf-8" }));

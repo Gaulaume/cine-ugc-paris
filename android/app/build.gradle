@@ -1,0 +1,33 @@
+// Appli Android « Ciné » : une fenêtre plein écran sur le site, qui reste donc à jour toute seule.
+plugins { id "com.android.application" }
+
+android {
+    namespace "fr.cine.paris"
+    compileSdk 35
+    defaultConfig {
+        applicationId "fr.cine.paris"
+        minSdk 24
+        targetSdk 34   // 35 imposerait l'affichage sous la barre d'état
+        versionCode Integer.parseInt(System.getenv("GITHUB_RUN_NUMBER") ?: "1")
+        versionName "1." + (System.getenv("GITHUB_RUN_NUMBER") ?: "0")
+    }
+    signingConfigs {
+        // Clé de signature fixe, pour pouvoir installer les mises à jour par-dessus l'ancienne version.
+        release {
+            storeFile file("../cine.keystore")
+            storePassword "cine-paris"
+            keyAlias "cine"
+            keyPassword "cine-paris"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
