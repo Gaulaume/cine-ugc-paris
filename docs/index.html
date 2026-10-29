@@ -356,6 +356,23 @@ dialog.disc .card-top { gap: 10px; }
 .disc-actions button.small { width: auto; height: 40px; padding: 0 14px; border-radius: 999px; border-color: #3A4256; color: #C9CFDC; font-size: 14px; font-weight: 600; }
 
 /* --- Bandeau et feuilles --- */
+#ticketsBtn { position: relative; }
+#ticketsBtn b { position: absolute; top: -2px; right: 0; min-width: 16px; padding: 0 4px; border-radius: 8px; background: var(--ticket); color: var(--ticket-ink); font: 700 11px/16px "Barlow", sans-serif; }
+#ticketsBtn b:empty { display: none; }
+#ticketsBtn:not([hidden]) + #themeBtn { margin-left: 0; }
+.tickets { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.tickets li { background: var(--page); border-radius: 12px; overflow: hidden; }
+.tickets .tk-img { display: block; width: 100%; max-height: 220px; object-fit: cover; object-position: top; border: 0; padding: 0; background: #fff; }
+.tickets .tk-img img { display: block; width: 100%; }
+.tickets .tk-meta { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+.tickets .tk-meta div { flex: 1; min-width: 0; }
+.tickets .tk-meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tickets .tk-meta small { color: var(--muted); }
+.tickets .tk-del { border: 0; background: none; color: var(--muted); font-size: 14px; padding: 6px; }
+dialog.ticketfull { width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: #fff; }
+dialog.ticketfull img { display: block; width: 100%; }
+dialog.ticketfull button { position: fixed; top: 12px; right: 12px; border: 0; border-radius: 20px; width: 40px; height: 40px; background: rgba(0,0,0,.6); color: #fff; font-size: 18px; }
+.day.partial span::after { content: " ·"; }
 .iconbtn { margin-left: auto; border: 0; background: none; color: #fff; font-size: 20px; padding: 4px 8px; line-height: 1; }
 .card-top { display: flex; align-items: center; padding: calc(env(safe-area-inset-top) + 12px) 16px 8px; }
 .card-top h2 { margin: 0; flex: 1; font: 700 24px "Barlow Condensed", sans-serif; }
@@ -374,7 +391,7 @@ dialog.disc .card-top { gap: 10px; }
 <body>
 <div class="app" id="app">
   <header class="plate">
-    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Ciné</span><button class="iconbtn" id="themeBtn" aria-label="Changer de thème (clair / sombre)">◐</button></h1>
+    <h1><button class="back" id="back" aria-label="Retour à la liste des films">‹</button><span id="title">Ciné</span><button class="iconbtn" id="ticketsBtn" hidden aria-label="Mes billets">🎟<b id="ticketsCount"></b></button><button class="iconbtn" id="themeBtn" aria-label="Changer de thème (clair / sombre)">◐</button></h1>
     <label class="search" id="searchBox">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Chercher un film ou un cinéma" autocomplete="off" enterkeyhint="search" aria-label="Chercher un film ou un cinéma">
@@ -412,6 +429,13 @@ dialog.disc .card-top { gap: 10px; }
     <div class="card-top"><h2 id="sheetTitle"></h2><button class="x" id="sheetClose" aria-label="Fermer">✕</button></div>
     <div id="sheetBody"></div>
   </dialog>
+
+  <!-- Mes billets (appli Android) : captures gardées depuis la page de réservation -->
+  <dialog class="sheet" id="tsheet" aria-label="Mes billets">
+    <div class="card-top"><h2>Mes billets</h2><button class="x" id="tsheetClose" aria-label="Fermer">✕</button></div>
+    <div id="tsheetBody" style="padding: 0 16px 8px"></div>
+  </dialog>
+  <dialog class="ticketfull" id="tfull" aria-label="Billet"><img id="tfullImg" alt="Billet"><button id="tfullClose" aria-label="Fermer">✕</button></dialog>
 
   <!-- Découverte : on fait défiler les films de la semaine -->
   <dialog class="disc" id="disc" aria-label="Découvrir les films">
@@ -480,6 +504,7 @@ async function load(refresh = false) {
   }
   const today = parisNow().slice(0, 10);
   state.data.days = state.data.days.filter(d => d >= today);
+  state.dayCount = null;
   if (!refresh || !state.data.days.includes(state.day)) state.day = state.data.days[0] || today;
   // Index par film pour aller vite.
   state.byMovie = new Map();
@@ -500,11 +525,21 @@ async function load(refresh = false) {
   route();
 }
 
+// Jour dont les cinémas n'ont pas encore publié le programme (la semaine ciné commence le mercredi).
+function partialDay(d) {
+  if (!state.dayCount) {
+    state.dayCount = {};
+    for (const s of state.data.showtimes) { const k = s[2].slice(0, 10); state.dayCount[k] = (state.dayCount[k] || 0) + 1; }
+  }
+  const counts = Object.values(state.dayCount).sort((a, b) => a - b), median = counts[counts.length >> 1] || 0;
+  return (state.dayCount[d] || 0) < median / 3;
+}
+
 function renderDays() {
   $("#days").innerHTML = state.data.days.map((d, i) => {
     const dt = new Date(d + "T12:00:00");
     const label = i === 0 ? "auj." : i === 1 ? "dem." : DOW[dt.getDay()];
-    return `<button class="day" data-day="${d}" aria-pressed="${d === state.day}"><b>${dt.getDate()}</b><span>${label}</span></button>`;
+    return `<button class="day${partialDay(d) ? " partial" : ""}" data-day="${d}" aria-pressed="${d === state.day}"><b>${dt.getDate()}</b><span>${label}</span></button>`;
   }).join("");
 }
 
@@ -684,7 +719,7 @@ function timeChips(list, t, now) {
     const end = endTime(s);
     const inner = `${s[2].slice(11)}<small>${esc(label(s))}</small>${end && !past ? `<i class="end">→ ${end}</i>` : ""}${!past && started(s) ? `<i class="started">a commencé</i>` : ""}`;
     const url = !past && (s[5] || t.allocine);
-    return url ? `<a class="time ${cls}" href="${esc(url)}" target="_blank" rel="noopener" aria-label="Réserver la séance de ${s[2].slice(11)}">${inner}</a>`
+    return url ? `<a class="time ${cls}" href="${esc(url)}" data-s="${s.i}" target="_blank" rel="noopener" aria-label="Réserver la séance de ${s[2].slice(11)}">${inner}</a>`
                : `<span class="time ${cls}">${inner}</span>`;
   }).join("");
 }
@@ -744,7 +779,7 @@ function renderFilm(id) {
       const t = state.data.theaters[s[1]];
       // Toute la ligne ouvre la réservation de cette séance sur le site du cinéma.
       const url = s[2] >= now && (s[5] || t.allocine);
-      const row = url ? `a class="row" href="${esc(url)}" target="_blank" rel="noopener"` : `div class="row"`;
+      const row = url ? `a class="row" href="${esc(url)}" data-s="${s.i}" target="_blank" rel="noopener"` : `div class="row"`;
       const end = endTime(s), fav = state.favs.has(s[1]) ? "★ " : "";
       const more = s[2] >= now ? `<button class="more" data-more="${s.i}" aria-label="Enchaîner un 2e film, partager, calendrier">⋯</button>` : "";
       return `<li class="tl"><${row}><div class="when ${s[2] < now ? "past" : ""}">${s[2].slice(11)}${end ? `<small>→ ${end}</small>` : ""}</div>
@@ -784,7 +819,8 @@ function setStatus(extra) {
   const d = state.data;
   const upd = d.generatedAt ? new Date(d.generatedAt) : null;
   const when = upd ? upd.toLocaleString("fr-FR", { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }) : "";
-  $("#status").textContent = [extra, when && `mis à jour ${when}`].filter(Boolean).join(" — ");
+  const partial = partialDay(state.day) && "programme pas encore publié par tous les cinémas (nouvelle semaine le mercredi)";
+  $("#status").textContent = [extra, partial, when && `mis à jour ${when}`].filter(Boolean).join(" — ");
 }
 
 function route() {
@@ -881,6 +917,49 @@ const syncLayout = () => {
   $("#layoutBtn").setAttribute("aria-label", state.layout === "grid" ? "Afficher en liste" : "Afficher les affiches");
 };
 $("#layoutBtn").onclick = () => { state.layout = state.layout === "grid" ? "list" : "grid"; store.set("layout", state.layout); syncLayout(); route(); };
+// --- Appli Android : réservation dans Ciné et « Mes billets » ---
+// Les liens de réservation s'ouvrent dans la page intégrée, titrée avec le film et la séance.
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[data-s]");
+  if (!a || !window.CineApp?.book) return;
+  e.preventDefault();
+  const s = state.data.showtimes[a.dataset.s], m = state.data.movies[s[0]], t = state.data.theaters[s[1]];
+  CineApp.book(a.href, m.title, [t.name, showDate(s), label(s)].filter(Boolean).join(" · "));
+});
+function readTickets() {
+  try { return JSON.parse(CineApp.tickets()); } catch { return []; }
+}
+function ticketsChanged() {
+  if (!window.CineApp?.tickets) return;
+  const list = readTickets();
+  $("#ticketsBtn").hidden = false;
+  $("#ticketsCount").textContent = list.length || "";
+  if ($("#tsheet").open) renderTickets(list);
+}
+window.ticketsChanged = ticketsChanged;
+function renderTickets(list = readTickets()) {
+  $("#tsheetBody").innerHTML = list.length ? `<ul class="tickets">${list.map(k => `<li>
+      <button class="tk-img" data-tk-open="${esc(k.id)}" aria-label="Afficher le billet en grand"><img src="${k.img}" alt=""></button>
+      <div class="tk-meta"><div><b>${esc(k.title || "Billet")}</b><small>${esc(k.sub || new Date(+k.id).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }))}</small></div>
+      <button class="tk-del" data-tk-del="${esc(k.id)}" aria-label="Supprimer ce billet">Supprimer</button></div></li>`).join("")}</ul>`
+    : `<p class="muted">Aucun billet pour l'instant. Après avoir réservé, touche « 🎟 Garder le billet » en haut de la page de confirmation, QR code bien visible : il sera ici, prêt à montrer à l'entrée.</p>`;
+}
+$("#ticketsBtn").onclick = () => { renderTickets(); $("#tsheet").showModal(); };
+$("#tsheetClose").onclick = () => $("#tsheet").close();
+$("#tsheet").addEventListener("click", e => {
+  if (e.target === $("#tsheet")) return $("#tsheet").close();
+  const open = e.target.closest("[data-tk-open]"), del = e.target.closest("[data-tk-del]");
+  if (open) {
+    $("#tfullImg").src = open.querySelector("img").src;
+    $("#tfull").showModal();
+    CineApp.bright(true);
+  }
+  if (del && confirm("Supprimer ce billet ?")) { CineApp.deleteTicket(del.dataset.tkDel); ticketsChanged(); renderTickets(); }
+});
+$("#tfullClose").onclick = () => $("#tfull").close();
+$("#tfull").addEventListener("close", () => window.CineApp?.bright(false));
+ticketsChanged();
+
 $("#themeBtn").onclick = () => {
   const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = t; store.set("theme", t);
@@ -986,7 +1065,7 @@ function openSheet(s) {
   const pairs = doubleFeature(s);
   const pairHTML = pairs.length ? `<ul class="pairs">${pairs.map(({ x, wait, same }) => {
       const pm = state.data.movies[x[0]], pt = state.data.theaters[x[1]], pe = endTime(x);
-      return `<li><a href="${esc(bookUrl(x))}" target="_blank" rel="noopener">${posterHTML(pm)}
+      return `<li><a href="${esc(bookUrl(x))}" data-s="${x.i}" target="_blank" rel="noopener">${posterHTML(pm)}
         <div><b>${esc(pm.title)}</b><span>${x[2].slice(11)}${pe ? ` → ${pe}` : ""} · ${same ? "même salle" : esc(pt.name)}</span>
         <small>${wait <= 0 ? "juste après" : `${wait} min d'attente`}${pm.rating ? ` · ★ ${String(pm.rating).replace(".", ",")}` : ""}${label(x) ? " · " + esc(label(x)) : ""}</small></div></a></li>`;
     }).join("")}</ul>`
@@ -994,7 +1073,7 @@ function openSheet(s) {
   $("#sheetBody").innerHTML = `
     <p class="sheet-sub">${esc(t.name)} · ${esc(showDate(s))}${end ? ` → ${end}` : ""}${label(s) ? " · " + esc(label(s)) : ""}</p>
     <div class="card-actions">
-      <a class="btn" href="${esc(bookUrl(s))}" target="_blank" rel="noopener">Réserver</a>
+      <a class="btn" href="${esc(bookUrl(s))}" data-s="${s.i}" target="_blank" rel="noopener">Réserver</a>
       <button class="ghost" data-share="${s.i}">Partager</button>
       <button class="ghost" data-ics="${s.i}">Ajouter au calendrier</button>
     </div>

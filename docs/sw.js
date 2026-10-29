@@ -1,7 +1,7 @@
 // Ouverture instantanée : tout est servi depuis le cache du téléphone, puis rafraîchi en
 // arrière-plan (« stale-while-revalidate »). Quand de nouvelles séances arrivent, on prévient
 // la page, qui se met à jour toute seule. Hors ligne, l'appli marche avec la dernière copie.
-const CACHE = "seances-v8";
+const CACHE = "seances-v9";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "data/showtimes.json"];
 
 self.addEventListener("install", e => {

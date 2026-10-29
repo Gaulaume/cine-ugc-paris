@@ -28,6 +28,11 @@ Ensuite, chaque exécution du workflow « Mise à jour des séances » publie le
 `FR` = film français. Le filtre « VO » garde tout sauf les films doublés ; « VF » garde
 tout ce qui est en français.
 
+## Jours incomplets
+La semaine des cinémas commence le mercredi : avant, le programme du mercredi suivant n'est
+publié que par quelques salles. Ces jours portent un point dans la barre des jours et un avis
+dans la ligne d'état.
+
 ## Réservation
 Chaque séance porte son lien de réservation sur le site du cinéma (ugc.fr, mk2.com,
 billetteries des indépendants), fourni par AlloCiné : toucher un horaire ouvre directement
@@ -81,8 +86,12 @@ Raccourcis sur chaque affiche de la liste : ♡ (envie de voir) et ✓ (déjà v
 
 ## Appli Android
 Dossier `android/` : petite appli Android (WebView plein écran sur le site, donc toujours à jour).
-Les liens extérieurs (réservation, Letterboxd, Maps, agenda) s'ouvrent dans leur appli ;
-« Partager » utilise le menu d'Android. Le workflow « Appli Android » construit l'APK à chaque
+Les réservations (ugc.fr, mk2.com, billetteries des indés) et AlloCiné s'ouvrent **dans Ciné**,
+sous une barre aux couleurs de l'appli (film, salle, heure, site) : plus de passage par l'appli
+UGC ni par le navigateur, et la connexion aux sites reste gardée. Sur la page de confirmation,
+« 🎟 Garder le billet » enregistre l'écran (QR code) dans « Mes billets » (🎟 en haut de l'appli),
+affiché en grand, écran à fond, pour l'entrée en salle. Letterboxd, Maps et l'agenda s'ouvrent
+dans leur appli ; « Partager » utilise le menu d'Android. Le workflow « Appli Android » construit l'APK à chaque
 changement de `android/` et le publie : https://github.com/Gaulaume/cine-ugc-paris/releases/latest/download/cine.apk
 (clé de signature `android/cine.keystore`, fixe pour pouvoir installer les mises à jour par-dessus).
 
