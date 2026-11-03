@@ -43,6 +43,16 @@ Le filtre « ✦ Nouveautés » garde les films sortis depuis 7 jours et ceux pa
 (avant-premières), du plus récent au plus ancien. Badge « Nouveau » / « Sortie mer. 21 oct. »
 dans la liste ; les séances en avant-première portent la mention « Avant-première ».
 
+## Bientôt
+Onglet « Bientôt » : sorties des 6 prochaines semaines, d'après le calendrier des sorties
+d'AlloCiné (`docs/data/upcoming.json`, mis à jour avec les séances), groupées par date. ♡ pour
+les ajouter aux envies ; les films déjà en avant-première ouvrent leurs séances.
+
+## Films masqués
+Par défaut, la liste cache les films déjà vus, ceux écartés (✕ dans « Découvrir ») et ceux sortis
+depuis plus de 4 semaines — sauf les envies ♥ et les reprises (sorties il y a plus d'un an).
+Lien « Afficher N films masqués » en bas de liste ; la recherche les trouve toujours.
+
 ## Par cinéma
 La recherche trouve aussi les salles (« danton », « mk2 », « champo »…). Chaque salle a sa
 page (`#/salle/<code>`) : tous ses films du jour avec leurs horaires (filtres respectés, envies
