@@ -410,7 +410,7 @@ dialog.ticketfull button { position: fixed; top: 12px; right: 12px; border: 0; b
     <button class="chip discover" id="discoverBtn">🎞 Découvrir</button>
     <button class="chip" id="filtersBtn" aria-haspopup="dialog">Filtres<b id="filtersCount"></b></button>
     <label class="chip"><select id="sort" aria-label="Trier les films">
-      <option value="pop">↕ Plus diffusés</option><option value="note">↕ Mieux notés</option>
+      <option value="pop">↕ Plus diffusés</option><option value="note">↕ Mieux notés</option><option value="recent">↕ Plus récents</option>
     </select></label>
   </div>
   <div class="activef" id="activeFilters" aria-label="Filtres actifs"></div>
@@ -651,8 +651,16 @@ function renderList() {
   const recentSince = (() => { const d = new Date(t0 + "T12:00:00"); d.setMonth(d.getMonth() - 3); return d.toISOString().slice(0, 10); })();
   const isRecent = m => !!m.release && m.release >= recentSince;
   const byNote = state.sort === "note";
+  // « Plus récents » : par rapport au jour choisi, films sortis (le plus récent d'abord), puis
+  // avant-premières (la sortie la plus proche d'abord), puis sans date connue.
+  const byRecent = (a, b) => {
+    const ra = a.m.release, rb = b.m.release;
+    if (!ra || !rb) return !ra - !rb;
+    const fa = ra > state.day, fb = rb > state.day;
+    return fa !== fb ? fa - fb : fa ? ra.localeCompare(rb) : rb.localeCompare(ra);
+  };
   rows.sort((a, b) => (!a.n - !b.n) || (byNote && (isRecent(b.m) - isRecent(a.m) || score(b.m) - score(a.m)))
-    || (state.nouv && byRelease(a, b)) || b.theaters - a.theaters || b.n - a.n);
+    || ((state.sort === "recent" || state.nouv) && byRecent(a, b)) || b.theaters - a.theaters || b.n - a.n);
   // Recherche : salles dont le nom correspond (« danton », « mk2 », « champo »…).
   const cineHits = q ? Object.entries(state.data.theaters).filter(([, t]) => norm(t.name).includes(q))
     .sort(([a, x], [b, y]) => (state.favs.has(b) - state.favs.has(a)) || x.arr - y.arr) : [];
