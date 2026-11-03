@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from cineparis.allocine import parse_theater_cards
+from cineparis.allocine import parse_agenda, parse_theater_cards
 from cineparis.cinemas import CINEMAS
 from cineparis.core import match_cinemas, parse_results
 
@@ -100,3 +100,19 @@ def test_sortie_et_avant_premiere():
     parse_results([{"movie": film, "showtimes": {"original_st": [raw]}}], "C0159", movies, shows)
     assert movies["9"]["release"] == "2026-10-14"
     assert shows[0][4] == ["Avant-première", "Grand écran"]
+
+
+def test_calendrier_des_sorties():
+    page = """<div class="card entity-card entity-card-list cf"> <figure class="thumbnail "> <span class="x thumbnail-container thumbnail-link" title="L&#039;Affaire Marie-Claire">
+      <img class="thumbnail-img" src="https://fr.web.img6.acsta.net/c_310_420/img/4a/3c/p.jpg" alt="poster" width="310" height="420" /> </span> </figure>
+      <div class="meta "> <h2 class="meta-title"> <a class="meta-title-link" href="/film/fichefilm_gen_cfilm=323550.html">L&#039;Affaire Marie-Claire</a> </h2>
+      <div class="meta-body"> <div class="meta-body-item meta-body-info"> <span class="date">4 novembre 2026</span> <span class="spacer">|</span>
+      <span class="ACr dark-grey-link">Historique</span>, <span class="ACr dark-grey-link">Thriller</span> </div>
+      <div class="meta-body-item meta-body-direction "> <span class="light">De</span> <span class="ACr dark-grey-link">Jane Doe</span> </div></div></div>
+      <div class="card entity-card entity-card-list cf"> <img class="thumbnail-img" src="data:image/gif;base64,x" data-src="https://img/r.jpg" />
+      <a class="meta-title-link" href="/film/fichefilm_gen_cfilm=1000026918.html">Ramayana</a>
+      <div class="meta-body-item meta-body-info"> <span class="date">1er décembre 2026</span> </div>"""
+    films = parse_agenda(page)
+    assert films[0] == {"id": "323550", "title": "L'Affaire Marie-Claire", "poster": "https://fr.web.img6.acsta.net/c_310_420/img/4a/3c/p.jpg",
+                        "release": "2026-11-04", "genres": ["Historique", "Thriller"], "directors": ["Jane Doe"]}
+    assert films[1]["release"] == "2026-12-01" and films[1]["poster"] == "https://img/r.jpg"

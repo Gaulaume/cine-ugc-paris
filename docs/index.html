@@ -107,6 +107,14 @@ button { cursor: pointer; }
 
 /* --- Filtres --- */
 .filters { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px 4px; }
+.tabs { display: flex; gap: 22px; padding: 12px 16px 0; border-bottom: 1px solid var(--line); }
+.tabs a { padding: 6px 0 9px; color: var(--muted); text-decoration: none; font: 600 16px "Barlow", sans-serif; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tabs a[aria-current] { color: var(--ink); border-bottom-color: var(--ticket); }
+.app.film-mode .tabs { display: none; }
+.app.soon-mode .days, .app.soon-mode .filters, .app.soon-mode .activef { display: none; }
+.app.soon-mode .plate { padding-bottom: 14px; }
+a.film-row { color: inherit; text-decoration: none; }
+.hint-soon { margin: 4px 16px 32px; font-size: 13px; color: var(--muted); }
 @media (max-width: 360px) { .filters { gap: 5px; padding-left: 12px; padding-right: 12px; } .filters .chip { padding: 6px 9px; font-size: 13px; } }
 .statusrow { display: flex; align-items: center; justify-content: space-between; padding-right: 10px; }
 .statusrow .status { padding-top: 0; }
@@ -406,6 +414,9 @@ dialog.ticketfull button { position: fixed; top: 12px; right: 12px; border: 0; b
     <button class="x" id="installClose" aria-label="Masquer">✕</button>
   </div>
 
+  <nav class="tabs" aria-label="Pages">
+    <a href="#" id="tabNow" aria-current="page">À l'affiche</a><a href="#/bientot" id="tabSoon">Bientôt</a>
+  </nav>
   <div class="filters" role="group" aria-label="Filtres et tri">
     <button class="chip discover" id="discoverBtn">🎞 Découvrir</button>
     <button class="chip" id="filtersBtn" aria-haspopup="dialog">Filtres<b id="filtersCount"></b></button>
@@ -471,6 +482,18 @@ function toggleSeen(id, on = !state.seen.has(id)) {
   if (on) { state.seenAt[id] = parisNow().slice(0, 10); state.seen.add(id); state.wish.delete(id); store.set("wish", [...state.wish]); }
   else { delete state.seenAt[id]; state.seen.delete(id); }
   store.set("seenAt", state.seenAt);
+}
+// Films masqués par défaut (sauf en recherche) : déjà vus, écartés dans « Découvrir » (✕),
+// ou sortis depuis plus de 4 semaines. Les envies ♥ et les reprises (sorties il y a plus d'un an)
+// restent visibles.
+const OLD_DAYS = 28, REPRISE_DAYS = 365;
+const daysAgo = n => { const d = new Date(parisNow().slice(0, 10) + "T12:00:00"); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+function hiddenReason(id, m) {
+  if (state.seen.has(id)) return "seen";
+  if (state.wish.has(id)) return null;
+  if (state.nope.has(id)) return "nope";
+  if (m?.release && m.release < daysAgo(OLD_DAYS) && m.release >= daysAgo(REPRISE_DAYS)) return "old";
+  return null;
 }
 function toggleWish(id, on = !state.wish.has(id)) {
   on ? state.wish.add(id) : state.wish.delete(id);
@@ -609,7 +632,7 @@ const arrBadge = (t, cls = "arr") => `<span class="${cls} ${t.group === "Indépe
 const label = s => [s[3] === "FR" ? "" : s[3], ...s[4]].filter(Boolean).join(" ");
 
 const posterHTML = (m, cls = "poster") => m.poster
-  ? `<img class="${cls}" src="${esc(m.poster)}" loading="lazy" decoding="async" alt="">`
+  ? `<img class="${cls}" src="${esc(m.poster)}" loading="lazy" decoding="async" alt="" onerror="this.style.visibility='hidden'">`
   : `<div class="${cls}" aria-hidden="true">${esc((m.title || "?")[0])}</div>`;
 
 function renderList() {
@@ -618,7 +641,7 @@ function renderList() {
   const q = norm(state.q).trim();
   const now = cutoff();  // séances commencées depuis moins de 20 min = encore à venir
   const rows = [];
-  let hiddenSeen = 0;
+  const hiddenBy = { seen: 0, nope: 0, old: 0 };
   for (const [id, list] of state.byMovie) {
     const m = state.data.movies[id];
     if (!m) continue;
@@ -626,7 +649,8 @@ function renderList() {
     if (state.nouv && !isNew(m)) continue;
     if (state.envies && !state.wish.has(id)) continue;
     // Films déjà vus masqués (sauf si on les cherche ou qu'on demande à les voir).
-    if (state.seen.has(id) && !q && !state.showSeen) { if (filtered(list).length) hiddenSeen++; continue; }
+    const why = hiddenReason(id, m);
+    if (why && !q && !state.showSeen) { if (filtered(list).length) hiddenBy[why]++; continue; }
     const shows = filtered(list);
     if (!shows.length) {
       // Recherche : le film ne passe pas ce jour-là, on indique sa prochaine séance.
@@ -669,8 +693,12 @@ function renderList() {
       return `<li><a href="#/salle/${esc(tid)}">${arrBadge(t)}<span><b>${state.favs.has(tid) ? "★ " : ""}${esc(t.name)}</b><small>${n} séance${n > 1 ? "s" : ""} ce jour-là</small></span><i aria-hidden="true">›</i></a></li>`;
     }).join("")}</ul>${rows.length ? `<h3 class="list-sep">Films</h3>` : ""}` : "";
   setStatus(rows.length ? `${rows.length} film${rows.length > 1 ? "s" : ""}` : cineHits.length ? `${cineHits.length} cinéma${cineHits.length > 1 ? "s" : ""}` : "");
-  const seenLink = hiddenSeen ? `<button class="pastlink" data-seen-list="1">Afficher ${hiddenSeen} film${hiddenSeen > 1 ? "s" : ""} déjà vu${hiddenSeen > 1 ? "s" : ""}</button>`
-    : state.showSeen && state.seen.size ? `<button class="pastlink" data-seen-list="0">Masquer les films déjà vus</button>` : "";
+  const nHidden = hiddenBy.seen + hiddenBy.nope + hiddenBy.old;
+  const why = [hiddenBy.old && `${hiddenBy.old} sorti${hiddenBy.old > 1 ? "s" : ""} depuis plus de 4 semaines`,
+    hiddenBy.seen && `${hiddenBy.seen} déjà vu${hiddenBy.seen > 1 ? "s" : ""}`,
+    hiddenBy.nope && `${hiddenBy.nope} pas pour moi`].filter(Boolean).join(", ");
+  const seenLink = nHidden ? `<button class="pastlink" data-seen-list="1">Afficher ${nHidden} film${nHidden > 1 ? "s" : ""} masqué${nHidden > 1 ? "s" : ""} (${why})</button>`
+    : state.showSeen ? `<button class="pastlink" data-seen-list="0">Masquer les anciens films, déjà vus et écartés</button>` : "";
   if (!rows.length && cineHits.length) { $("#main").innerHTML = cineHTML; return; }
   if (!rows.length) {
     $("#main").innerHTML = emptyHTML("Aucun film trouvé", q ? "Aucune séance à venir avec ces filtres." : "Change de jour ou enlève des filtres.") + seenLink;
@@ -743,7 +771,7 @@ function renderCinema(tid) {
   const byM = new Map();
   for (const s of list) { if (!byM.has(s[0])) byM.set(s[0], []); byM.get(s[0]).push(s); }
   const films = [...byM.entries()].map(([id, shows]) => ({ id, m: state.data.movies[id], shows, next: shows.find(s => s[2] >= now)?.[2] || "~" }))
-    .filter(f => f.m && !(state.seen.has(f.id) && !state.showSeen))
+    .filter(f => f.m && !(hiddenReason(f.id, f.m) && !state.showSeen))
     .sort((a, b) => (state.wish.has(b.id) - state.wish.has(a.id)) || a.next.localeCompare(b.next));
   const fav = state.favs.has(tid);
   const pastN = state.day === today() && !state.showPast
@@ -833,8 +861,42 @@ function setStatus(extra) {
 
 function route() {
   if (!state.data) return;
-  const m = location.hash.match(/^#\/film\/(\w+)/), c = location.hash.match(/^#\/salle\/(\w+)/);
-  m ? renderFilm(m[1]) : c ? renderCinema(c[1]) : renderList();
+  const m = location.hash.match(/^#\/film\/(\w+)/), c = location.hash.match(/^#\/salle\/(\w+)/), soon = location.hash === "#/bientot";
+  $("#app").classList.toggle("soon-mode", soon);
+  $("#tabNow").toggleAttribute("aria-current", !soon); $("#tabSoon").toggleAttribute("aria-current", soon);
+  if (soon) $("#tabSoon").setAttribute("aria-current", "page"); else $("#tabNow").setAttribute("aria-current", "page");
+  m ? renderFilm(m[1]) : c ? renderCinema(c[1]) : soon ? renderUpcoming() : renderList();
+}
+
+// --- « Bientôt » : sorties des prochaines semaines (calendrier AlloCiné, data/upcoming.json) ---
+async function renderUpcoming() {
+  $("#app").classList.remove("film-mode");
+  $("#title").textContent = "Ciné";
+  if (!state.upcoming) {
+    $("#main").innerHTML = `<div class="empty"><p>Chargement des prochaines sorties…</p></div>`;
+    try { const r = await fetch("data/upcoming.json"); if (!r.ok) throw 0; state.upcoming = (await r.json()).films || []; }
+    catch { $("#main").innerHTML = emptyHTML("Pas encore de sorties à venir", "Elles arrivent avec la prochaine mise à jour des séances."); return; }
+    if (location.hash !== "#/bientot") return;
+  }
+  const q = norm(state.q).trim(), t0 = today();
+  const films = state.upcoming.filter(f => f.release >= t0 && !state.nope.has(f.id) && (!q || norm(f.title).includes(q)));
+  setStatus(`${films.length} film${films.length > 1 ? "s" : ""} à venir`);
+  if (!films.length) { $("#main").innerHTML = emptyHTML("Aucune sortie trouvée", q ? "Vérifie l'orthographe." : ""); return; }
+  const byDate = new Map();
+  for (const f of films) { if (!byDate.has(f.release)) byDate.set(f.release, []); byDate.get(f.release).push(f); }
+  const row = f => {
+    const w = state.wish.has(f.id), previews = state.byMovie.has(f.id) && filtered(state.byMovie.get(f.id), true).length;
+    const inner = `<div class="pwrap">${posterHTML({ poster: f.poster, title: f.title })}</div>
+      <div>${previews ? `<span class="badge">Avant-premières</span>` : ""}<h2>${esc(f.title)}</h2>
+        <p>${esc([f.genres.slice(0, 2).join(", "), f.directors.length ? "de " + f.directors.join(", ") : ""].filter(Boolean).join(" · "))}</p></div>
+      <div class="next">${previews && state.layout !== "grid" ? `<b aria-hidden="true">›</b>` : ""}</div>`;
+    const body = previews ? `<button class="film-row" data-film="${esc(f.id)}">${inner}</button>`
+                          : `<a class="film-row" href="https://www.allocine.fr/film/fichefilm_gen_cfilm=${esc(f.id)}.html" target="_blank" rel="noopener">${inner}</a>`;
+    return `<li class="frow">${body}<div class="qa"><button class="qbtn${w ? " on" : ""}" data-qwish="${esc(f.id)}" aria-pressed="${w}" aria-label="${w ? "Retirer de mes envies" : "Envie de voir"} : ${esc(f.title)}">${w ? "♥" : "♡"}</button></div></li>`;
+  };
+  $("#main").innerHTML = [...byDate.entries()].map(([d, fs]) =>
+    `<h3 class="list-sep">Sortie ${esc(fmtDay(d))}</h3><ul class="films${state.layout === "grid" ? " grid" : ""}">${fs.map(row).join("")}</ul>`).join("") +
+    `<p class="hint-soon">♡ = envie de voir : le film ressortira en tête de « Mes envies » quand il sera à l'affiche.</p>`;
 }
 
 // --- Événements ---
@@ -843,7 +905,8 @@ $("#back").onclick = () => history.length > 1 ? history.back() : (location.hash 
 $("#q").addEventListener("input", e => {
   state.q = e.target.value;
   $("#searchBox").classList.toggle("has-text", !!state.q);
-  if (location.hash) location.hash = ""; else renderList();
+  if (location.hash === "#/bientot") renderUpcoming();
+  else if (location.hash) location.hash = ""; else renderList();
 });
 $("#q").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
 $("#clear").onclick = () => { $("#q").value = ""; state.q = ""; $("#searchBox").classList.remove("has-text"); route(); $("#q").focus(); };
@@ -879,7 +942,7 @@ function visibleCount() {
   let n = 0;
   for (const [id, list] of state.byMovie) {
     const m = state.data.movies[id];
-    if (!m || (state.nouv && !isNew(m)) || (state.envies && !state.wish.has(id)) || (state.seen.has(id) && !state.showSeen)) continue;
+    if (!m || (state.nouv && !isNew(m)) || (state.envies && !state.wish.has(id)) || (hiddenReason(id, m) && !state.showSeen)) continue;
     if (filtered(list).length) n++;
   }
   return n;
@@ -1118,7 +1181,7 @@ function buildDeck() {
   const rows = [];
   for (const [id, list] of state.byMovie) {
     const m = state.data.movies[id];
-    if (!m || state.seen.has(id) || state.wish.has(id) || state.nope.has(id)) continue;
+    if (!m || state.wish.has(id) || hiddenReason(id, m)) continue;
     const shows = filtered(list, true);
     if (shows.length) rows.push({ id, m, n: shows.length, th: new Set(shows.map(s => s[1])).size, next: shows[0] });
   }

@@ -109,6 +109,15 @@ def cmd_scrape(args) -> int:
         "theaters": theaters_out, "movies": movies, "showtimes": showtimes, "errors": errors,
     }
     (DATA / "showtimes.json").write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+    # Sorties à venir (page « Bientôt ») : un échec ne bloque pas les séances.
+    try:
+        upcoming = AllocineClient().upcoming()
+        if upcoming:
+            (DATA / "upcoming.json").write_text(json.dumps(
+                {"generatedAt": payload["generatedAt"], "films": upcoming}, ensure_ascii=False, separators=(",", ":")))
+            print(f"{len(upcoming)} sorties à venir → docs/data/upcoming.json")
+    except Exception as exc:
+        print(f"Sorties à venir indisponibles : {exc}", file=sys.stderr)
     print(f"\n{len(showtimes)} séances · {len(movies)} films · {len(theaters_out)} salles "
           f"({len(errors)} en erreur) → docs/data/showtimes.json")
     return 0
